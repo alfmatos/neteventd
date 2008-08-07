@@ -15,6 +15,8 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
+#include "config.h"
+
 int debug_rt_msg(struct rtmsg * rti)
 {
 	char * strt;
@@ -123,6 +125,7 @@ int main(void)
 	struct timeval tv;
 	struct tm * t;
 
+	printf("%s Copyright (C) 2008 Alfredo Matos\n", PACKAGE_STRING);
 
 	sknl = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 
