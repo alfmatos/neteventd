@@ -40,6 +40,23 @@ tprintf(char * format, ...)
 	return 0;
 }
 
+void
+short_header()
+{
+	printf("%s - Copyright (C) 2008 Alfredo Matos.\n", PACKAGE_STRING);
+}
+
+void
+long_header()
+{
+	printf("%s\n", PACKAGE_STRING);
+	printf("Copyright (C) 2008 Alfredo Matos.\n"
+	"License GPLv3+:"
+	" GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"
+	"This is free software: you are free to change and redistribute it.\n"
+	"There is NO WARRANTY, to the extent permitted by law.\n");
+}
+
 
 int debug_rt_msg(struct rtmsg * rti)
 {
@@ -146,7 +163,7 @@ int main(void)
 	struct ifinfomsg * ifmsg;
 	struct rtattr * attr, *attr2;
 
-	printf("%s Copyright (C) 2008 Alfredo Matos\n", PACKAGE_STRING);
+	short_header();
 
 	sknl = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 
