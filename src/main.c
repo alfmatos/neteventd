@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <errno.h>
 #include <string.h>
 
@@ -16,6 +17,29 @@
 #include <linux/rtnetlink.h>
 
 #include "config.h"
+
+int
+tprintf(char * format, ...)
+{
+	va_list argp;
+	char msg[2048], timestamp[20];
+	struct timeval tv;
+	struct tm * t;
+
+	gettimeofday(&tv, NULL);
+	t = localtime(&tv.tv_sec);
+
+	sprintf(timestamp, "[%02d:%02d:%02d.%06ld]",
+		t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec);
+
+	va_start(argp, format);
+	vsnprintf(msg, sizeof(msg), format, argp);
+	va_end(argp);
+
+	printf("%s %s", timestamp, msg);
+	return 0;
+}
+
 
 int debug_rt_msg(struct rtmsg * rti)
 {
@@ -56,58 +80,58 @@ int parse_rt_event(struct nlmsghdr * nlh, int n)
 	case RTM_NEWLINK:
 		ifmsg = (struct ifinfomsg *) NLMSG_DATA(nlh);
 		if_indextoname(ifmsg->ifi_index, ifname);
-		printf("Link Up Event on device (%s)\n",
+		tprintf("Link Up Event on device (%s)\n",
 					ifname, ifmsg->ifi_index );
 		break;
 	case RTM_DELLINK:
 		ifmsg = (struct ifinfomsg *) NLMSG_DATA(nlh);
 		if_indextoname(ifmsg->ifi_index, ifname);
-		printf("Link Down Event on device (%s)\n",
+		tprintf("Link Down Event on device (%s)\n",
 					ifname, ifmsg->ifi_index );
 		break;
 	case RTM_GETLINK:
                 break;
 	case RTM_NEWADDR:
-		printf("Address Add Event\n");
+		tprintf("Address Add Event\n");
 		break;
 	case RTM_DELADDR:
-		printf("Address Del Event\n");
+		tprintf("Address Del Event\n");
 		break;
 	case RTM_GETADDR:
-		printf("Address Event\n");
+		tprintf("Address Event\n");
 		break;
         case RTM_NEWNEIGH:
 		ndi = (struct ndmsg *) NLMSG_DATA(nlh);
 		if_indextoname(ndi->ndm_ifindex, ifname);
-		printf("Neibhbour Add Event on device (%s)\n",
+		tprintf("Neibhbour Add Event on device (%s)\n",
 						ifname, ndi->ndm_ifindex );
                 break;
         case RTM_DELNEIGH:
 		ndi = (struct ndmsg *) NLMSG_DATA(nlh);
 		if_indextoname(ndi->ndm_ifindex, ifname);
-		printf("Neighbor Del Event on device (%s)\n", ifname, ndi->ndm_ifindex );
+		tprintf("Neighbor Del Event on device (%s)\n", ifname, ndi->ndm_ifindex );
                 break;
 	case RTM_GETNEIGH:
-		printf("Neighbor GET event\n");
+		tprintf("Neighbor GET event\n");
 		break;
 	case RTM_NEWROUTE:
-		printf("Route Add event\n");
+		tprintf("Route Add event\n");
 		rti = (struct rtmsg *) NLMSG_DATA(nlh);
 		debug_rt_msg(rti);
 		break;
 	case RTM_DELROUTE:
-		printf("Route Del event\n");
+		tprintf("Route Del event\n");
 		rti = (struct rtmsg *) NLMSG_DATA(nlh);
 		debug_rt_msg(rti);
 		break;
 	case RTM_GETROUTE:
-		printf("Route GET event\n");
+		tprintf("Route GET event\n");
 		rti = (struct rtmsg *) NLMSG_DATA(nlh);
 		debug_rt_msg(rti);
 		break;
 
         default:
-                printf("Unknown netlink event\n");
+                tprintf("Unknown netlink event\n");
                 break;
         }
 }
@@ -121,9 +145,6 @@ int main(void)
 	struct nlmsghdr * nlh; 
 	struct ifinfomsg * ifmsg;
 	struct rtattr * attr, *attr2;
-
-	struct timeval tv;
-	struct tm * t;
 
 	printf("%s Copyright (C) 2008 Alfredo Matos\n", PACKAGE_STRING);
 
@@ -157,16 +178,7 @@ int main(void)
 			exit(1);
 		}
 
-		gettimeofday(&tv, NULL);
-
-		char * strt = ctime(&tv.tv_sec);
-
-		t = localtime(&tv.tv_sec);
-
-		printf("%s", strt);
-
-		printf("[%02d:%02d:%02d.%06ld] Received %d bytes\n",
-			t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec, bytes);
+		tprintf("Received %d bytes.\n", bytes);
 
 		nlh = (struct nlmsghdr *) buf;
 
