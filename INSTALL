@@ -1,0 +1,6 @@
+Build and Installation Instructions:
+====================================
+
+    $ ./configure
+    $ make
+    $ make install
