@@ -84,30 +84,60 @@ int debug_rt_msg(struct rtmsg * rti)
 	return 0;
 }
 
-int parse_rt_atts(struct rtattr * tb[]);
-
-int parse_rt_event(struct nlmsghdr * nlh, int n)
+int parse_rt_attrs(struct rtattr * tb[], int max, struct rtattr * data, int len)
 {
-	char ifname[IFNAMSIZ];
-	struct ifinfomsg * ifmsg;
-	struct ndmsg * ndi;
-	struct rtmsg * rti;
+
+	struct rtattr * rta;
+	int atts=0;
+
+	memset(tb, 0, sizeof(struct rtattr *) * max);
+
+	for (rta = data; RTA_OK(rta, len); rta = RTA_NEXT(rta, len)){
+		tprintf("rta->rta_type: %d\n", rta->rta_type);
+		if ( rta->rta_type < max) {
+			tb[rta->rta_type] = rta;
+			atts++;
+		}
+	}
+
+	printf("Parsed %d attributes\n", atts);
+	return atts;
+}
+
+int parse_ifinfomsg(struct ifinfomsg * msg)
+{
+/*	printf("family: %d\n", msg->ifi_family);
+	printf("type: %d\n", msg->ifi_type);
+	printf("index: %d\n", msg->ifi_index);
+	printf("flags: %d\n", msg->ifi_flags);
+	printf("change: %d\n", msg->ifi_change); */
+
+	if (msg->ifi_flags & IFF_UP) {
+		printf("Interface up\n");
+	}
+
+	if (msg->ifi_change & IFF_UP) {
+		printf("Up state changed\n");
+	}
+
+	if (msg->ifi_change & IFF_PROMISC) {
+		printf("promisc state changed\n");
+	}
+
+	return 0;
+}
+
+int handle_addr_add_msg(struct ifaddrmsg * ifa_msg)
+{
+	return 0;
+}
+
+int handle_addr_msg(struct nlmsghdr * nlh, int n)
+{
+	struct ifaddrmsg * ifa_msg = NLMSG_DATA(nlh); 
+	struct rtattr * tb[IFA_MAX];
 
 	switch(nlh->nlmsg_type) {
-	case RTM_NEWLINK:
-		ifmsg = (struct ifinfomsg *) NLMSG_DATA(nlh);
-		if_indextoname(ifmsg->ifi_index, ifname);
-		tprintf("Link Up Event on device (%s)\n",
-					ifname, ifmsg->ifi_index );
-		break;
-	case RTM_DELLINK:
-		ifmsg = (struct ifinfomsg *) NLMSG_DATA(nlh);
-		if_indextoname(ifmsg->ifi_index, ifname);
-		tprintf("Link Down Event on device (%s)\n",
-					ifname, ifmsg->ifi_index );
-		break;
-	case RTM_GETLINK:
-                break;
 	case RTM_NEWADDR:
 		tprintf("Address Add Event\n");
 		break;
@@ -117,40 +147,93 @@ int parse_rt_event(struct nlmsghdr * nlh, int n)
 	case RTM_GETADDR:
 		tprintf("Address Event\n");
 		break;
+	default:
+		break;
+	}
+
+	parse_rt_attrs(tb, IFA_MAX, IFA_RTA(ifa_msg), IFA_PAYLOAD(nlh));
+	return 0;
+}
+
+int handle_neigh_msg(struct nlmsghdr * nlh, int n)
+{
+	/*struct rtattr * tb[IFA_MAX]; */
+	struct ndmsg * ndi;
+	char ifname[IFNAMSIZ];
+	ndi = (struct ndmsg *) NLMSG_DATA(nlh);
+	if_indextoname(ndi->ndm_ifindex, ifname);
+
+/*	parse_rt_attrs(tb, IFA_MAX, IFA_RTA(ifa_msg), IFA_PAYLOAD(nlh)); */
+
+	switch(nlh->nlmsg_type) {
         case RTM_NEWNEIGH:
-		ndi = (struct ndmsg *) NLMSG_DATA(nlh);
-		if_indextoname(ndi->ndm_ifindex, ifname);
-		tprintf("Neibhbour Add Event on device (%s)\n",
-						ifname, ndi->ndm_ifindex );
+		tprintf("Neibhbour Add Event on device (%s)\n", ifname);
                 break;
         case RTM_DELNEIGH:
-		ndi = (struct ndmsg *) NLMSG_DATA(nlh);
-		if_indextoname(ndi->ndm_ifindex, ifname);
-		tprintf("Neighbor Del Event on device (%s)\n", ifname, ndi->ndm_ifindex );
+		tprintf("Neighbor Del Event on device (%s)\n", ifname);
                 break;
 	case RTM_GETNEIGH:
 		tprintf("Neighbor GET event\n");
 		break;
-	case RTM_NEWROUTE:
-		tprintf("Route Add event\n");
-		rti = (struct rtmsg *) NLMSG_DATA(nlh);
-		debug_rt_msg(rti);
-		break;
-	case RTM_DELROUTE:
-		tprintf("Route Del event\n");
-		rti = (struct rtmsg *) NLMSG_DATA(nlh);
-		debug_rt_msg(rti);
-		break;
-	case RTM_GETROUTE:
-		tprintf("Route GET event\n");
-		rti = (struct rtmsg *) NLMSG_DATA(nlh);
-		debug_rt_msg(rti);
-		break;
+	}
 
+	return 0;
+}
+
+int handle_link_msg(struct nlmsghdr * nlh, int n)
+{
+	struct ifinfomsg * ifla_msg = NLMSG_DATA(nlh); 
+	struct rtattr * tb[IFLA_MAX];
+	char ifname[IFNAMSIZ];
+
+	parse_rt_attrs(tb, IFLA_MAX, IFLA_RTA(ifla_msg), IFLA_PAYLOAD(nlh));
+	if_indextoname(ifla_msg->ifi_index, ifname);
+
+	parse_ifinfomsg(ifla_msg); 
+
+	switch(nlh->nlmsg_type) {
+	case RTM_NEWLINK:
+		tprintf("Link Up Event on device (%s)\n", ifname);
+		break;
+	case RTM_DELLINK:
+		tprintf("Link Down Event on device (%s)\n", ifname);
+		break;
+	case RTM_GETLINK:
+		break;
+	default:
+		break;
+	} 
+
+	printf("Finished parsing message\n");
+	return 0;
+}
+
+int parse_rt_event(struct nlmsghdr * nlh, int n)
+{
+	struct rtmsg * rti;
+	char ifname[IFNAMSIZ];
+
+	switch(nlh->nlmsg_type) {
+	case RTM_NEWLINK: case RTM_DELLINK: case RTM_GETLINK:
+		handle_link_msg(nlh, n);
+                break;
+	case RTM_NEWADDR: case RTM_DELADDR: case RTM_GETADDR:
+		handle_addr_msg(nlh, n); 
+		break;
+        case RTM_NEWNEIGH: case RTM_DELNEIGH: case RTM_GETNEIGH:
+		tprintf("Neighbor event\n");
+		break;
+	case RTM_NEWROUTE: case RTM_DELROUTE: case RTM_GETROUTE:
+		tprintf("Route event\n");
+		rti = (struct rtmsg *) NLMSG_DATA(nlh);
+		debug_rt_msg(rti);
+		break;
         default:
                 tprintf("Unknown netlink event\n");
                 break;
         }
+
+	return 0;
 }
 
 int main(void)
@@ -161,7 +244,6 @@ int main(void)
 	char ifname[IFNAMSIZ];
 	struct nlmsghdr * nlh; 
 	struct ifinfomsg * ifmsg;
-	struct rtattr * attr, *attr2;
 
 	short_header();
 
@@ -174,13 +256,12 @@ int main(void)
 
 	memset(&skaddr, 0, sizeof(struct sockaddr_nl)); 
 	skaddr.nl_family = AF_NETLINK;
-	skaddr.nl_groups = RTNLGRP_LINK | RTNLGRP_NOTIFY | RTNLGRP_NEIGH 
-			| RTNLGRP_IPV6_IFADDR
-			| RTNLGRP_IPV6_MROUTE
-			| RTNLGRP_IPV6_ROUTE
-			| RTNLGRP_IPV4_IFADDR
-			| RTNLGRP_IPV4_MROUTE
-			| RTNLGRP_IPV4_ROUTE;
+	skaddr.nl_groups = 
+	( RTNLGRP_LINK | RTNLGRP_NOTIFY | RTNLGRP_NEIGH
+	| RTMGRP_IPV6_IFADDR | RTMGRP_IPV6_MROUTE | RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_IFINFO
+	| RTMGRP_IPV4_IFADDR
+	| RTNLGRP_IPV6_IFADDR | RTNLGRP_IPV6_MROUTE | RTNLGRP_IPV6_ROUTE
+	| RTNLGRP_IPV4_IFADDR | RTNLGRP_IPV4_MROUTE | RTNLGRP_IPV4_ROUTE );
 
 	if( bind(sknl, (struct sockaddr *) &skaddr, sizeof(skaddr)) < 0 ) {
 		printf("Error %d: %s\n", errno, strerror(errno));
@@ -188,6 +269,7 @@ int main(void)
 	}
 
 	while ( count )	{
+		memset(buf, 0, 2048);
 		bytes = recv(sknl, buf, 2048, 0);
 
 		if ( bytes <= 0 ) {
@@ -202,7 +284,6 @@ int main(void)
 		if (NLMSG_OK(nlh, bytes)) {
 			parse_rt_event(nlh, bytes);
 		}
-
 		count--;
 	}
 
