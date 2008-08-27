@@ -364,23 +364,8 @@ int handle_route_msg(struct nlmsghdr * nlh, int n)
 	char ifname[IFNAMSIZ];
 
 	/* parse_route_proto(rtm); */
-
-	switch(nlh->nlmsg_type) {
-	case RTM_NEWROUTE:
-		break;
-	case RTM_DELROUTE:
-		break;
-	case RTM_GETROUTE:
-		tprintf("Route event\n");
-		break;
-		break;
-	default:
-		break;
-	} 
-	
 	parse_rt_attrs(tb, RTN_MAX, RTM_RTA(rtm), RTM_PAYLOAD(nlh));
 	handle_route_attrs(rtm, tb, nlh->nlmsg_type);
-
 
 	return 0;
 }
