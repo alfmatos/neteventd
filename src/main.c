@@ -215,8 +215,8 @@ int handle_neigh_msg(struct nlmsghdr * nlh, int n)
 }
 
 void
-print_route_del_attrs(void * src, void * dst, void * gw, int * iif, int * oif,
-			struct rtmsg * rtm)
+print_route_attrs(void * src, void * dst, void * gw, int * iif, int * oif,
+			struct rtmsg * rtm, char * action)
 {
 	char gw_str[INET6_ADDRSTRLEN], dst_str[INET6_ADDRSTRLEN];
 	char src_str[INET6_ADDRSTRLEN], oif_str[IFNAMSIZ], iif_str[IFNAMSIZ];
@@ -238,60 +238,28 @@ print_route_del_attrs(void * src, void * dst, void * gw, int * iif, int * oif,
 		if_indextoname(*iif, iif_str);
 
 	if(dst && src && oif && gw) {
-		tprintf("Removed route %s/%d from %s/%d on dev %s via %s\n",
-					dst_str, rtm->rtm_dst_len,
+		tprintf("%s route %s/%d from %s/%d on dev %s via %s\n",
+				action,	dst_str, rtm->rtm_dst_len,
 					src_str, rtm->rtm_src_len,
 					 oif_str, gw_str);
 	} else if( dst && oif && gw) {
-		tprintf("Removed route %s/%d on dev %s via %s\n",
-					dst_str, rtm->rtm_dst_len,
+		tprintf("%s route %s/%d on dev %s via %s\n",
+				action,	dst_str, rtm->rtm_dst_len,
 					 oif_str, gw_str);
 	} else if (dst && oif) {
-		tprintf("Removed route %s/%d on dev %s\n",
-					dst_str, rtm->rtm_dst_len, oif_str);
+		tprintf("%s route %s/%d on dev %s\n",
+				action,	dst_str, rtm->rtm_dst_len, oif_str);
+	} else if (gw && oif) {
+		tprintf("%s default route via %s on dev %s\n",
+				action, gw_str, oif_str);
 	} else {
-		tprintf("Removed unparsed route type\n");
-	}
-}
-
-
-void
-print_route_add_attrs(void * src, void * dst, void * gw, int * iif, int * oif,
-			struct rtmsg * rtm)
-{
-	char gw_str[INET6_ADDRSTRLEN], dst_str[INET6_ADDRSTRLEN];
-	char src_str[INET6_ADDRSTRLEN], oif_str[IFNAMSIZ], iif_str[IFNAMSIZ];
-
-
-	if (dst)
-		inet_ntop(rtm->rtm_family, dst, dst_str, INET6_ADDRSTRLEN);
-
-	if (src)
-		inet_ntop(rtm->rtm_family, src, src_str, INET6_ADDRSTRLEN);
-
-	if (gw)
-		inet_ntop(rtm->rtm_family, gw, gw_str, INET6_ADDRSTRLEN);
-
-	if (oif)
-		if_indextoname(*oif, oif_str);
-
-	if (iif)
-		if_indextoname(*iif, iif_str);
-
-	if(dst && src && oif && gw) {
-		tprintf("Added route %s/%d from %s/%d on dev %s via %s\n",
-					dst_str, rtm->rtm_dst_len,
-					src_str, rtm->rtm_src_len,
-					 oif_str, gw_str);
-	} else if( dst && oif && gw) {
-		tprintf("Added route %s/%d on dev %s via %s\n",
-					dst_str, rtm->rtm_dst_len,
-					 oif_str, gw_str);
-	} else if (dst && oif) {
-		tprintf("Added route %s/%d on dev %s\n",
-					dst_str, rtm->rtm_dst_len, oif_str);
-	} else {
-		tprintf("Added unknown route type\n");
+		tprintf("%s unknown route type:", action);
+		if (gw) printf(" gw");
+		if (dst) printf(" dst");
+		if (src) printf(" src");
+		if (oif) printf(" oif");
+		if (iif) printf(" iif");
+		printf("\n");
 	}
 }
 
@@ -322,14 +290,13 @@ handle_route_attrs(struct rtmsg * rtm , struct rtattr * tb[], int type)
 	}
 
 	if (type == RTM_NEWROUTE) {
-		print_route_add_attrs(src, dst, gw, iif, oif, rtm);
+		print_route_attrs(src, dst, gw, iif, oif, rtm, "Added");
 	} else if ( type == RTM_DELROUTE) {
-		print_route_del_attrs(src, dst, gw, iif, oif, rtm);
+		print_route_attrs(src, dst, gw, iif, oif, rtm, "Removed");
 	}
 
 	return 0;
 }
-
 
 void
 parse_route_proto(struct rtmsg * rtm)
@@ -353,9 +320,7 @@ parse_route_proto(struct rtmsg * rtm)
 		default:
 			break;
 	}
-
 }
-
 
 int handle_route_msg(struct nlmsghdr * nlh, int n)
 {
