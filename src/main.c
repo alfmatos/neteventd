@@ -162,7 +162,6 @@ handle_addr_attrs(struct ifaddrmsg * ifa_msg , struct rtattr * tb[], int type)
 		}
 	}
 	
-
 	if (tb[IFA_LOCAL]) {
 	}
 
@@ -190,12 +189,12 @@ int handle_addr_msg(struct nlmsghdr * nlh, int n)
 	return 0;
 }
 
+
 int handle_neigh_msg(struct nlmsghdr * nlh, int n)
 {
 	/*struct rtattr * tb[IFA_MAX]; */
-	struct ndmsg * ndi;
+	struct ndmsg * ndi = NLMSG_DATA(nlh);
 	char ifname[IFNAMSIZ];
-	ndi = (struct ndmsg *) NLMSG_DATA(nlh);
 	if_indextoname(ndi->ndm_ifindex, ifname);
 
 /*	parse_rt_attrs(tb, IFA_MAX, IFA_RTA(ifa_msg), IFA_PAYLOAD(nlh)); */
@@ -214,6 +213,153 @@ int handle_neigh_msg(struct nlmsghdr * nlh, int n)
 
 	return 0;
 }
+
+void
+handle_route6_add_attrs(struct rtmsg * rtm , struct rtattr * tb[])
+{
+
+}
+
+
+void
+print_route_add_attrs(void * src, void * dst, void * gw, int * iif, int * oif,
+			struct rtmsg * rtm)
+{
+	char gw_str[INET6_ADDRSTRLEN], dst_str[INET6_ADDRSTRLEN];
+	char src_str[INET6_ADDRSTRLEN], oif_str[IFNAMSIZ], iif_str[IFNAMSIZ];
+
+
+	if (dst)
+		inet_ntop(rtm->rtm_family, dst, dst_str, INET6_ADDRSTRLEN);
+
+	if (src)
+		inet_ntop(rtm->rtm_family, src, src_str, INET6_ADDRSTRLEN);
+
+	if (gw)
+		inet_ntop(rtm->rtm_family, gw, gw_str, INET6_ADDRSTRLEN);
+
+	if (oif)
+		if_indextoname(*oif, oif_str);
+
+	if (iif)
+		if_indextoname(*iif, iif_str);
+
+	if(dst && src && oif && gw) {
+		tprintf("Added route %s/%d from %s/%d on dev %s via %s\n",
+					dst_str, rtm->rtm_dst_len,
+					src_str, rtm->rtm_src_len,
+					 oif_str, gw_str);
+	} else if( dst && oif && gw) {
+		tprintf("Added route %s/%d on dev %s via %s\n",
+					dst_str, rtm->rtm_dst_len,
+					 oif_str, gw_str);
+	} else if (dst && oif) {
+		tprintf("Added route %s/%d on dev %s\n",
+					dst_str, rtm->rtm_dst_len, oif_str);
+	} else {
+		tprintf("Added unknown route type\n");
+	}
+}
+
+void
+handle_route_add_attrs(struct rtmsg * rtm , struct rtattr * tb[])
+{
+	void * src=NULL, * dst=NULL, * gw=NULL;
+	int * iif=NULL, * oif=NULL; 
+
+
+	if (tb[RTA_DST]) {
+		dst = RTA_DATA(tb[RTA_DST]);
+	}
+
+	if (tb[RTA_SRC]) {
+		src = RTA_DATA(tb[RTA_SRC]);
+	}
+	
+	if (tb[RTA_IIF]) {
+		iif = RTA_DATA(tb[RTA_IIF]);
+	}
+
+	if (tb[RTA_OIF]) {
+		oif = RTA_DATA(tb[RTA_OIF]);
+	}
+
+	if (tb[RTA_GATEWAY]) {
+		gw = RTA_DATA(tb[RTA_GATEWAY]);
+	}
+
+	print_route_add_attrs(src, dst, gw, iif, oif, rtm);
+}
+
+int
+handle_route_attrs(struct rtmsg * rtm , struct rtattr * tb[], int type)
+{
+	if (type == RTM_NEWROUTE) {
+		handle_route_add_attrs(rtm, tb);
+	}
+
+	return 0;
+}
+
+
+void
+parse_route_proto(struct rtmsg * rtm)
+{
+	switch(rtm->rtm_protocol) {
+		case RTPROT_KERNEL:
+			printf("route added by kernel\n");
+			break;
+		case RTPROT_BOOT:
+			printf("route added at boot timel\n");
+			break;
+		case RTPROT_STATIC:
+			printf("route mannualy added\n");
+			break;
+		case RTPROT_RA:
+			printf("---> route added by RA/RS\n");
+			break;
+		case RTPROT_ZEBRA:
+			printf("route added by Zebra routing daemon\n");
+			break;
+		default:
+			break;
+	}
+
+}
+
+
+int handle_route_msg(struct nlmsghdr * nlh, int n)
+{
+	struct rtmsg * rtm = NLMSG_DATA(nlh); 
+	struct rtattr * tb[RTN_MAX];
+	char ifname[IFNAMSIZ];
+
+	/* parse_route_proto(rtm); */
+
+	switch(nlh->nlmsg_type) {
+	case RTM_NEWROUTE:
+		break;
+	case RTM_DELROUTE:
+		tprintf("Route Del event\n");
+		break;
+	case RTM_GETROUTE:
+		tprintf("Route event\n");
+		break;
+		break;
+	default:
+		break;
+	} 
+	
+
+	parse_rt_attrs(tb, RTN_MAX, RTM_RTA(rtm), RTM_PAYLOAD(nlh));
+
+	if ( nlh->nlmsg_type ==  RTM_NEWROUTE)
+		handle_route_attrs(rtm, tb, nlh->nlmsg_type);
+
+
+	return 0;
+}
+
 
 int handle_link_msg(struct nlmsghdr * nlh, int n)
 {
@@ -242,9 +388,6 @@ int handle_link_msg(struct nlmsghdr * nlh, int n)
 
 int parse_rt_event(struct nlmsghdr * nlh, int n)
 {
-	struct rtmsg * rti;
-	char ifname[IFNAMSIZ];
-
 	switch(nlh->nlmsg_type) {
 	case RTM_NEWLINK: case RTM_DELLINK: case RTM_GETLINK:
 		handle_link_msg(nlh, n);
@@ -253,10 +396,10 @@ int parse_rt_event(struct nlmsghdr * nlh, int n)
 		handle_addr_msg(nlh, n); 
 		break;
         case RTM_NEWNEIGH: case RTM_DELNEIGH: case RTM_GETNEIGH:
+		handle_neigh_msg(nlh, n);
 		break;
 	case RTM_NEWROUTE: case RTM_DELROUTE: case RTM_GETROUTE:
-		rti = (struct rtmsg *) NLMSG_DATA(nlh);
-		debug_rt_msg(rti);
+		handle_route_msg(nlh, n);
 		break;
         default:
                 tprintf("Unknown netlink event\n");
@@ -289,7 +432,7 @@ int main(void)
 	skaddr.nl_groups = 
 	( RTNLGRP_LINK | RTNLGRP_NOTIFY | RTNLGRP_NEIGH
 	| RTMGRP_IPV6_IFADDR | RTMGRP_IPV6_MROUTE | RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_IFINFO
-	| RTMGRP_IPV4_IFADDR
+	| RTMGRP_IPV4_IFADDR | RTMGRP_IPV4_ROUTE
 	| RTNLGRP_IPV6_IFADDR | RTNLGRP_IPV6_MROUTE | RTNLGRP_IPV6_ROUTE
 	| RTNLGRP_IPV4_IFADDR | RTNLGRP_IPV4_MROUTE | RTNLGRP_IPV4_ROUTE );
 
