@@ -215,9 +215,43 @@ int handle_neigh_msg(struct nlmsghdr * nlh, int n)
 }
 
 void
-handle_route6_add_attrs(struct rtmsg * rtm , struct rtattr * tb[])
+print_route_del_attrs(void * src, void * dst, void * gw, int * iif, int * oif,
+			struct rtmsg * rtm)
 {
+	char gw_str[INET6_ADDRSTRLEN], dst_str[INET6_ADDRSTRLEN];
+	char src_str[INET6_ADDRSTRLEN], oif_str[IFNAMSIZ], iif_str[IFNAMSIZ];
 
+
+	if (dst)
+		inet_ntop(rtm->rtm_family, dst, dst_str, INET6_ADDRSTRLEN);
+
+	if (src)
+		inet_ntop(rtm->rtm_family, src, src_str, INET6_ADDRSTRLEN);
+
+	if (gw)
+		inet_ntop(rtm->rtm_family, gw, gw_str, INET6_ADDRSTRLEN);
+
+	if (oif)
+		if_indextoname(*oif, oif_str);
+
+	if (iif)
+		if_indextoname(*iif, iif_str);
+
+	if(dst && src && oif && gw) {
+		tprintf("Removed route %s/%d from %s/%d on dev %s via %s\n",
+					dst_str, rtm->rtm_dst_len,
+					src_str, rtm->rtm_src_len,
+					 oif_str, gw_str);
+	} else if( dst && oif && gw) {
+		tprintf("Removed route %s/%d on dev %s via %s\n",
+					dst_str, rtm->rtm_dst_len,
+					 oif_str, gw_str);
+	} else if (dst && oif) {
+		tprintf("Removed route %s/%d on dev %s\n",
+					dst_str, rtm->rtm_dst_len, oif_str);
+	} else {
+		tprintf("Removed unparsed route type\n");
+	}
 }
 
 
@@ -261,12 +295,11 @@ print_route_add_attrs(void * src, void * dst, void * gw, int * iif, int * oif,
 	}
 }
 
-void
-handle_route_add_attrs(struct rtmsg * rtm , struct rtattr * tb[])
+int
+handle_route_attrs(struct rtmsg * rtm , struct rtattr * tb[], int type)
 {
 	void * src=NULL, * dst=NULL, * gw=NULL;
 	int * iif=NULL, * oif=NULL; 
-
 
 	if (tb[RTA_DST]) {
 		dst = RTA_DATA(tb[RTA_DST]);
@@ -288,14 +321,10 @@ handle_route_add_attrs(struct rtmsg * rtm , struct rtattr * tb[])
 		gw = RTA_DATA(tb[RTA_GATEWAY]);
 	}
 
-	print_route_add_attrs(src, dst, gw, iif, oif, rtm);
-}
-
-int
-handle_route_attrs(struct rtmsg * rtm , struct rtattr * tb[], int type)
-{
 	if (type == RTM_NEWROUTE) {
-		handle_route_add_attrs(rtm, tb);
+		print_route_add_attrs(src, dst, gw, iif, oif, rtm);
+	} else if ( type == RTM_DELROUTE) {
+		print_route_del_attrs(src, dst, gw, iif, oif, rtm);
 	}
 
 	return 0;
@@ -340,7 +369,6 @@ int handle_route_msg(struct nlmsghdr * nlh, int n)
 	case RTM_NEWROUTE:
 		break;
 	case RTM_DELROUTE:
-		tprintf("Route Del event\n");
 		break;
 	case RTM_GETROUTE:
 		tprintf("Route event\n");
@@ -350,11 +378,8 @@ int handle_route_msg(struct nlmsghdr * nlh, int n)
 		break;
 	} 
 	
-
 	parse_rt_attrs(tb, RTN_MAX, RTM_RTA(rtm), RTM_PAYLOAD(nlh));
-
-	if ( nlh->nlmsg_type ==  RTM_NEWROUTE)
-		handle_route_attrs(rtm, tb, nlh->nlmsg_type);
+	handle_route_attrs(rtm, tb, nlh->nlmsg_type);
 
 
 	return 0;
