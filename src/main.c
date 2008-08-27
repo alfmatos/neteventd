@@ -87,15 +87,20 @@ int parse_rt_attrs(struct rtattr * tb[], int max, struct rtattr * data, int len)
 
 	struct rtattr * rta;
 	int atts=0;
+	int type;
 
 	memset(tb, 0, sizeof(struct rtattr *) * max);
 
 	for (rta = data; RTA_OK(rta, len); rta = RTA_NEXT(rta, len)){
-		if ( rta->rta_type < max) {
-			tb[rta->rta_type] = rta;
+		type = rta->rta_type;
+		if (type > 0 && type < max) {
+			tb[type] = rta;
 			atts++;
 		}
 	}
+	
+	if (len > 0)
+		printf("Unparsed bytes in the RTA\n");
 
 	return atts;
 }
@@ -201,13 +206,12 @@ int handle_neigh_msg(struct nlmsghdr * nlh, int n)
 
 	switch(nlh->nlmsg_type) {
         case RTM_NEWNEIGH:
-		tprintf("Neibhbour Add Event on device (%s)\n", ifname);
+		tprintf("Added Neighbor on device %s\n", ifname);
                 break;
         case RTM_DELNEIGH:
-		tprintf("Neighbor Del Event on device (%s)\n", ifname);
+		tprintf("Removed Neighbor on device %s\n", ifname);
                 break;
 	case RTM_GETNEIGH:
-		tprintf("Neighbor GET event\n");
 		break;
 	}
 
