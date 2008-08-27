@@ -361,7 +361,6 @@ int handle_route_msg(struct nlmsghdr * nlh, int n)
 {
 	struct rtmsg * rtm = NLMSG_DATA(nlh); 
 	struct rtattr * tb[RTN_MAX];
-	char ifname[IFNAMSIZ];
 
 	/* parse_route_proto(rtm); */
 	parse_rt_attrs(tb, RTN_MAX, RTM_RTA(rtm), RTM_PAYLOAD(nlh));
