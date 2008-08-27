@@ -142,15 +142,23 @@ print_addr_event(void * addr, int family, int ifindex, int event)
 int
 handle_addr_attrs(struct ifaddrmsg * ifa_msg , struct rtattr * tb[], int type)
 {
+	struct ifa_cacheinfo * cinfo;
+
+	if (tb[IFA_CACHEINFO]) {
+		cinfo = RTA_DATA(tb[IFA_CACHEINFO]);
+	}
+
 	if (tb[IFA_ADDRESS]) {
 		int family = ifa_msg->ifa_family;
 		if ( (ifa_msg->ifa_family == AF_INET6)
 			|| (ifa_msg->ifa_family == AF_INET) ) {
-			print_addr_event(
+			if ( cinfo->tstamp == cinfo->cstamp) {
+				print_addr_event(
 				RTA_DATA(tb[IFA_ADDRESS]),
 				family,
 				ifa_msg->ifa_index,
 				type);
+			}
 		}
 	}
 	
@@ -167,8 +175,6 @@ handle_addr_attrs(struct ifaddrmsg * ifa_msg , struct rtattr * tb[], int type)
 	if (tb[IFA_ANYCAST]) {
 	}
 
-	if (tb[IFA_CACHEINFO]) {
-	}
 
 	return 0;
 }
