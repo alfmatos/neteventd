@@ -113,7 +113,6 @@ int parse_ifinfomsg(struct ifinfomsg * msg)
 		tprintf("Interface %s changed to DOWN\n", ifname);
 	}
 
-
 	return 0;
 }
 
@@ -122,41 +121,39 @@ int handle_addr_add_msg(struct ifaddrmsg * ifa_msg)
 	return 0;
 }
 
+void
+print_addr_event(void * addr, int family, int ifindex, int event)
+{
+	char str[INET6_ADDRSTRLEN];
+	char ifname[IFNAMSIZ];
+	if_indextoname(ifindex, ifname);
+
+	inet_ntop(family, addr, str, INET6_ADDRSTRLEN);
+
+	if (event == RTM_NEWADDR) {
+		tprintf("Added %s to dev %s\n", str, ifname);
+	}
+
+	if (event == RTM_DELADDR) {
+		tprintf("Removed %s from dev %s\n", str, ifname);
+	}
+}
+
 int
 handle_addr_attrs(struct ifaddrmsg * ifa_msg , struct rtattr * tb[], int type)
 {
-	struct in6_addr * addr6;
-	struct in_addr * addr4;
-	char str[INET6_ADDRSTRLEN];
-
-	char ifname[IFNAMSIZ];
-	if_indextoname(ifa_msg->ifa_index, ifname);
-
 	if (tb[IFA_ADDRESS]) {
-		if (ifa_msg->ifa_family == AF_INET6) {
-			addr6 = (struct in6_addr*) RTA_DATA(tb[IFA_ADDRESS]);
-			inet_ntop(AF_INET6, addr6, str, INET6_ADDRSTRLEN);
-			if (type == RTM_NEWADDR) {
-				tprintf("Added %s to dev %s\n", str, ifname);
-			}
-			if (type == RTM_DELADDR) {
-				tprintf("Removed %s from dev %s\n",
-								str, ifname);
-			}
-		}
-
-		if (ifa_msg->ifa_family == AF_INET) {
-			addr4 = (struct in_addr*) RTA_DATA(tb[IFA_ADDRESS]);
-			inet_ntop(AF_INET, addr4, str, INET6_ADDRSTRLEN);
-			if (type == RTM_NEWADDR) {
-				tprintf("Added %s to dev %s\n", str, ifname);
-			}
-			if (type == RTM_DELADDR) {
-				tprintf("Removed %s from dev %s\n",
-								str, ifname);
-			}
+		int family = ifa_msg->ifa_family;
+		if ( (ifa_msg->ifa_family == AF_INET6)
+			|| (ifa_msg->ifa_family == AF_INET) ) {
+			print_addr_event(
+				RTA_DATA(tb[IFA_ADDRESS]),
+				family,
+				ifa_msg->ifa_index,
+				type);
 		}
 	}
+	
 
 	if (tb[IFA_LOCAL]) {
 	}
