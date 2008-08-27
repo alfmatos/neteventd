@@ -403,12 +403,16 @@ int main(void)
 
 	memset(&skaddr, 0, sizeof(struct sockaddr_nl)); 
 	skaddr.nl_family = AF_NETLINK;
-	skaddr.nl_groups = 
-	( RTNLGRP_LINK | RTNLGRP_NOTIFY | RTNLGRP_NEIGH
-	| RTMGRP_IPV6_IFADDR | RTMGRP_IPV6_MROUTE | RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_IFINFO
-	| RTMGRP_IPV4_IFADDR | RTMGRP_IPV4_ROUTE
-	| RTNLGRP_IPV6_IFADDR | RTNLGRP_IPV6_MROUTE | RTNLGRP_IPV6_ROUTE
-	| RTNLGRP_IPV4_IFADDR | RTNLGRP_IPV4_MROUTE | RTNLGRP_IPV4_ROUTE );
+	skaddr.nl_groups = RTMGRP_LINK
+			| RTMGRP_NOTIFY
+			| RTMGRP_NEIGH
+			| RTMGRP_IPV6_IFADDR
+			| RTMGRP_IPV6_ROUTE
+			| RTMGRP_IPV6_MROUTE
+			| RTMGRP_IPV6_IFINFO
+			| RTMGRP_IPV4_IFADDR 
+			| RTMGRP_IPV4_ROUTE
+			| RTMGRP_IPV4_MROUTE;
 
 	if( bind(sknl, (struct sockaddr *) &skaddr, sizeof(skaddr)) < 0 ) {
 		printf("Error %d: %s\n", errno, strerror(errno));
