@@ -4,10 +4,12 @@
 #include <errno.h>
 #include <string.h>
 
-#include <sys/time.h>
 #include <time.h> 
 
 #include <asm/types.h>
+#include <arpa/inet.h>
+
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -65,16 +67,12 @@ int debug_rt_msg(struct rtmsg * rti)
 
 	switch(rti->rtm_type) {
 	case RTN_UNICAST:
-		printf("Unicast Route\n");
 		break;
 	case RTN_LOCAL:
-		printf("Local Route\n");
 		break;
 	case RTN_MULTICAST:
-		printf("Multicast Route\n");
 		break;
 	case RTN_BROADCAST:
-		printf("Broadcast Route\n");
 		break;
 	default:
 		break;
@@ -93,36 +91,28 @@ int parse_rt_attrs(struct rtattr * tb[], int max, struct rtattr * data, int len)
 	memset(tb, 0, sizeof(struct rtattr *) * max);
 
 	for (rta = data; RTA_OK(rta, len); rta = RTA_NEXT(rta, len)){
-		tprintf("rta->rta_type: %d\n", rta->rta_type);
 		if ( rta->rta_type < max) {
 			tb[rta->rta_type] = rta;
 			atts++;
 		}
 	}
 
-	printf("Parsed %d attributes\n", atts);
 	return atts;
 }
 
 int parse_ifinfomsg(struct ifinfomsg * msg)
 {
-/*	printf("family: %d\n", msg->ifi_family);
-	printf("type: %d\n", msg->ifi_type);
-	printf("index: %d\n", msg->ifi_index);
-	printf("flags: %d\n", msg->ifi_flags);
-	printf("change: %d\n", msg->ifi_change); */
+	char ifname[IFNAMSIZ];
+	if_indextoname(msg->ifi_index, ifname);
 
-	if (msg->ifi_flags & IFF_UP) {
-		printf("Interface up\n");
+	if (msg->ifi_change & IFF_UP && (msg->ifi_flags & IFF_UP) ) {
+		tprintf("Interface %s changed to UP\n", ifname);
 	}
 
-	if (msg->ifi_change & IFF_UP) {
-		printf("Up state changed\n");
+	if (msg->ifi_change & IFF_UP && !(msg->ifi_flags & IFF_UP) ) {
+		tprintf("Interface %s changed to DOWN\n", ifname);
 	}
 
-	if (msg->ifi_change & IFF_PROMISC) {
-		printf("promisc state changed\n");
-	}
 
 	return 0;
 }
@@ -132,26 +122,68 @@ int handle_addr_add_msg(struct ifaddrmsg * ifa_msg)
 	return 0;
 }
 
+int
+handle_addr_attrs(struct ifaddrmsg * ifa_msg , struct rtattr * tb[], int type)
+{
+	struct in6_addr * addr6;
+	struct in_addr * addr4;
+	char str[INET6_ADDRSTRLEN];
+
+	char ifname[IFNAMSIZ];
+	if_indextoname(ifa_msg->ifa_index, ifname);
+
+	if (tb[IFA_ADDRESS]) {
+		if (ifa_msg->ifa_family == AF_INET6) {
+			addr6 = (struct in6_addr*) RTA_DATA(tb[IFA_ADDRESS]);
+			inet_ntop(AF_INET6, addr6, str, INET6_ADDRSTRLEN);
+			if (type == RTM_NEWADDR) {
+				tprintf("Added %s to dev %s\n", str, ifname);
+			}
+			if (type == RTM_DELADDR) {
+				tprintf("Removed %s from dev %s\n",
+								str, ifname);
+			}
+		}
+
+		if (ifa_msg->ifa_family == AF_INET) {
+			addr4 = (struct in_addr*) RTA_DATA(tb[IFA_ADDRESS]);
+			inet_ntop(AF_INET, addr4, str, INET6_ADDRSTRLEN);
+			if (type == RTM_NEWADDR) {
+				tprintf("Added %s to dev %s\n", str, ifname);
+			}
+			if (type == RTM_DELADDR) {
+				tprintf("Removed %s from dev %s\n",
+								str, ifname);
+			}
+		}
+	}
+
+	if (tb[IFA_LOCAL]) {
+	}
+
+	if (tb[IFA_LABEL]) {
+	}
+
+	if (tb[IFA_BROADCAST]) {
+	}
+
+	if (tb[IFA_ANYCAST]) {
+	}
+
+	if (tb[IFA_CACHEINFO]) {
+	}
+
+	return 0;
+}
+
 int handle_addr_msg(struct nlmsghdr * nlh, int n)
 {
 	struct ifaddrmsg * ifa_msg = NLMSG_DATA(nlh); 
 	struct rtattr * tb[IFA_MAX];
 
-	switch(nlh->nlmsg_type) {
-	case RTM_NEWADDR:
-		tprintf("Address Add Event\n");
-		break;
-	case RTM_DELADDR:
-		tprintf("Address Del Event\n");
-		break;
-	case RTM_GETADDR:
-		tprintf("Address Event\n");
-		break;
-	default:
-		break;
-	}
 
 	parse_rt_attrs(tb, IFA_MAX, IFA_RTA(ifa_msg), IFA_PAYLOAD(nlh));
+	handle_addr_attrs(ifa_msg, tb, nlh->nlmsg_type);
 	return 0;
 }
 
@@ -193,10 +225,8 @@ int handle_link_msg(struct nlmsghdr * nlh, int n)
 
 	switch(nlh->nlmsg_type) {
 	case RTM_NEWLINK:
-		tprintf("Link Up Event on device (%s)\n", ifname);
 		break;
 	case RTM_DELLINK:
-		tprintf("Link Down Event on device (%s)\n", ifname);
 		break;
 	case RTM_GETLINK:
 		break;
@@ -204,7 +234,6 @@ int handle_link_msg(struct nlmsghdr * nlh, int n)
 		break;
 	} 
 
-	printf("Finished parsing message\n");
 	return 0;
 }
 
@@ -221,10 +250,8 @@ int parse_rt_event(struct nlmsghdr * nlh, int n)
 		handle_addr_msg(nlh, n); 
 		break;
         case RTM_NEWNEIGH: case RTM_DELNEIGH: case RTM_GETNEIGH:
-		tprintf("Neighbor event\n");
 		break;
 	case RTM_NEWROUTE: case RTM_DELROUTE: case RTM_GETROUTE:
-		tprintf("Route event\n");
 		rti = (struct rtmsg *) NLMSG_DATA(nlh);
 		debug_rt_msg(rti);
 		break;
@@ -268,7 +295,7 @@ int main(void)
 		exit(1);
 	}
 
-	while ( count )	{
+	while (1)	{
 		memset(buf, 0, 2048);
 		bytes = recv(sknl, buf, 2048, 0);
 
@@ -277,7 +304,9 @@ int main(void)
 			exit(1);
 		}
 
+#if 0
 		tprintf("Received %d bytes.\n", bytes);
+#endif
 
 		nlh = (struct nlmsghdr *) buf;
 
