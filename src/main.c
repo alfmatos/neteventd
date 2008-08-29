@@ -198,16 +198,7 @@ int handle_addr_msg(struct nlmsghdr * nlh, int n)
 }
 
 void
-print_mac_addr(char * str, unsigned char * addr)
-{
- 	sprintf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
-			addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
-};
-
-		
-
-void
-print_neigh_attrs (struct ndmsg * ndm, void * addr, unsigned char * lladdr,
+print_neigh_attrs (struct ndmsg * ndm, void * addr, void * lladdr,
 								char * action)
 {
 	char addr_str[INET6_ADDRSTRLEN], ll_str[INET6_ADDRSTRLEN];
@@ -216,15 +207,15 @@ print_neigh_attrs (struct ndmsg * ndm, void * addr, unsigned char * lladdr,
 		inet_ntop(ndm->ndm_family, addr, addr_str, INET6_ADDRSTRLEN);
 
 	if (lladdr)
-		print_mac_addr(ll_str, lladdr);
-
-	tprintf("Neihghbour %s:", action);
+		ether_ntoa_r(lladdr, ll_str);
+		
+	tprintf("Neighbour %s:", action);
 
 	if (addr)
-		printf(" %s", addr_str);
+		printf(" IP Address(%s)", addr_str);
 
 	if (lladdr)
-		printf(" %s", ll_str);
+		printf(" LL address(%s)", ll_str);
 
 	printf("\n");
 }
