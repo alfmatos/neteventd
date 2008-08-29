@@ -14,9 +14,11 @@
 #include <sys/socket.h>
 
 #include <net/if.h>
+#include <net/ethernet.h>
 
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
+#include <linux/neighbour.h>
 
 #include "config.h"
 
@@ -183,6 +185,7 @@ handle_addr_attrs(struct ifaddrmsg * ifa_msg , struct rtattr * tb[], int type)
 	return 0;
 }
 
+
 int handle_addr_msg(struct nlmsghdr * nlh, int n)
 {
 	struct ifaddrmsg * ifa_msg = NLMSG_DATA(nlh); 
@@ -194,26 +197,67 @@ int handle_addr_msg(struct nlmsghdr * nlh, int n)
 	return 0;
 }
 
+void
+print_mac_addr(char * str, unsigned char * addr)
+{
+ 	sprintf(str, "%02x:%02x:%02x:%02x:%02x:%02x",
+			addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+};
+
+		
+
+void
+print_neigh_attrs (struct ndmsg * ndm, void * addr, unsigned char * lladdr,
+								char * action)
+{
+	char addr_str[INET6_ADDRSTRLEN], ll_str[INET6_ADDRSTRLEN];
+
+	if (addr)
+		inet_ntop(ndm->ndm_family, addr, addr_str, INET6_ADDRSTRLEN);
+
+	if (lladdr)
+		print_mac_addr(ll_str, lladdr);
+
+	tprintf("Neihghbour %s:", action);
+
+	if (addr)
+		printf(" %s", addr_str);
+
+	if (lladdr)
+		printf(" %s", ll_str);
+
+	printf("\n");
+}
+
+void handle_neigh_attrs(struct ndmsg * ndm, struct rtattr * tb[], int type)
+{
+	char ifname[IFNAMSIZ];
+	void * addr = NULL, * lladdr;
+
+	if_indextoname(ndm->ndm_ifindex, ifname);
+
+
+	if (tb[NDA_DST]) {
+		addr = RTA_DATA(tb[NDA_DST]);	
+	}
+
+	if (tb[NDA_LLADDR]) {
+		lladdr = RTA_DATA(tb[NDA_LLADDR]);
+	}
+
+	if (type == RTM_NEWNEIGH) 
+		print_neigh_attrs(ndm, addr, lladdr, "Add Event");
+	else if (type == RTM_DELNEIGH)
+		print_neigh_attrs(ndm, addr, lladdr, "Del Event");
+}
 
 int handle_neigh_msg(struct nlmsghdr * nlh, int n)
 {
-	/*struct rtattr * tb[IFA_MAX]; */
-	struct ndmsg * ndi = NLMSG_DATA(nlh);
-	char ifname[IFNAMSIZ];
-	if_indextoname(ndi->ndm_ifindex, ifname);
+	struct rtattr * tb[NDA_MAX];
+	struct ndmsg * ndm = NLMSG_DATA(nlh);
 
-/*	parse_rt_attrs(tb, IFA_MAX, IFA_RTA(ifa_msg), IFA_PAYLOAD(nlh)); */
-
-	switch(nlh->nlmsg_type) {
-        case RTM_NEWNEIGH:
-		tprintf("Added Neighbor on device %s\n", ifname);
-                break;
-        case RTM_DELNEIGH:
-		tprintf("Removed Neighbor on device %s\n", ifname);
-                break;
-	case RTM_GETNEIGH:
-		break;
-	}
+	parse_rt_attrs(tb, NDA_MAX, RTM_RTA(ndm), RTM_PAYLOAD(nlh));
+	handle_neigh_attrs(ndm, tb, nlh->nlmsg_type);
 
 	return 0;
 }
