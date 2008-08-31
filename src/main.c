@@ -35,6 +35,7 @@ int tprintf(char *format, ...)
 	va_end(argp);
 
 	printf("%s %s", timestamp, msg);
+
 	return 0;
 }
 
@@ -52,26 +53,6 @@ void long_header()
 	       "This is free software: "
 	       "you are free to change and redistribute it.\n"
 	       "There is NO WARRANTY, to the extent permitted by law.\n");
-}
-
-int debug_rt_msg(struct rtmsg *rti)
-{
-	char *strt;
-
-	switch (rti->rtm_type) {
-	case RTN_UNICAST:
-		break;
-	case RTN_LOCAL:
-		break;
-	case RTN_MULTICAST:
-		break;
-	case RTN_BROADCAST:
-		break;
-	default:
-		break;
-	}
-
-	return 0;
 }
 
 int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
@@ -100,21 +81,15 @@ int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
 int parse_ifinfomsg(struct ifinfomsg *msg)
 {
 	char ifname[IFNAMSIZ];
+
 	if_indextoname(msg->ifi_index, ifname);
 
-	if (msg->ifi_change & IFF_UP && (msg->ifi_flags & IFF_UP)) {
+	if (msg->ifi_change & IFF_UP && (msg->ifi_flags & IFF_UP))
 		tprintf("Interface %s changed to UP\n", ifname);
-	}
 
-	if (msg->ifi_change & IFF_UP && !(msg->ifi_flags & IFF_UP)) {
+	if (msg->ifi_change & IFF_UP && !(msg->ifi_flags & IFF_UP))
 		tprintf("Interface %s changed to DOWN\n", ifname);
-	}
 
-	return 0;
-}
-
-int handle_addr_add_msg(struct ifaddrmsg *ifa_msg)
-{
 	return 0;
 }
 
@@ -122,51 +97,59 @@ void print_addr_event(void *addr, int family, int ifindex, int event)
 {
 	char str[INET6_ADDRSTRLEN];
 	char ifname[IFNAMSIZ];
-	if_indextoname(ifindex, ifname);
 
+	if_indextoname(ifindex, ifname);
 	inet_ntop(family, addr, str, INET6_ADDRSTRLEN);
 
-	if (event == RTM_NEWADDR) {
+	if (event == RTM_NEWADDR)
 		tprintf("Added %s to dev %s\n", str, ifname);
-	}
 
-	if (event == RTM_DELADDR) {
+	if (event == RTM_DELADDR)
 		tprintf("Removed %s from dev %s\n", str, ifname);
-	}
 }
 
-int handle_addr_attrs(struct ifaddrmsg *ifa_msg, struct rtattr *tb[],
+static inline valid_family(const int family)
+{
+	return ((family == AF_INET) || (family == AF_INET6));
+}
+
+static inline cache_new_address_ts(const struct ifa_cacheinfo * ci)
+{
+	return (ci->tstamp == ci->cstamp);
+}
+
+int handle_addr_attrs(const struct ifaddrmsg *ifa_msg, struct rtattr *tb[],
 		      int type)
 {
-	struct ifa_cacheinfo *cinfo;
+	struct ifa_cacheinfo *ci=NULL;
+	void * addr=NULL;
+	int family, ifindex;
+
+	family = ifa_msg->ifa_family;
+	ifindex = ifa_msg->ifa_index;
 
 	if (tb[IFA_CACHEINFO]) {
-		cinfo = RTA_DATA(tb[IFA_CACHEINFO]);
+		ci = RTA_DATA(tb[IFA_CACHEINFO]);
 	}
 
 	if (tb[IFA_ADDRESS]) {
-		int family = ifa_msg->ifa_family;
-		if ((ifa_msg->ifa_family == AF_INET6)
-		    || (ifa_msg->ifa_family == AF_INET)) {
-			if (cinfo->tstamp == cinfo->cstamp) {
-				print_addr_event(RTA_DATA(tb[IFA_ADDRESS]),
-						 family,
-						 ifa_msg->ifa_index, type);
-			}
-		}
+		addr = RTA_DATA(tb[IFA_ADDRESS]);
 	}
 
+	/* TODO - Parse remaining attributes */
+# if 0
 	if (tb[IFA_LOCAL]) {
 	}
-
 	if (tb[IFA_LABEL]) {
 	}
-
 	if (tb[IFA_BROADCAST]) {
 	}
-
 	if (tb[IFA_ANYCAST]) {
 	}
+# endif
+
+	if (ci && addr && valid_family(family) && cache_new_address_ts(ci))
+		print_addr_event(addr, family, ifindex, type);
 
 	return 0;
 }
@@ -179,6 +162,7 @@ int handle_addr_msg(struct nlmsghdr *nlh, int n)
 
 	parse_rt_attrs(tb, IFA_MAX, IFA_RTA(ifa_msg), IFA_PAYLOAD(nlh));
 	handle_addr_attrs(ifa_msg, tb, nlh->nlmsg_type);
+
 	return 0;
 }
 
@@ -191,8 +175,7 @@ void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
 	if_indextoname(ndm->ndm_ifindex, ifname);
 
 	if (addr)
-		inet_ntop(ndm->ndm_family, addr, addr_str,
-			  INET6_ADDRSTRLEN);
+		inet_ntop(ndm->ndm_family, addr, addr_str, INET6_ADDRSTRLEN);
 
 	if (lladdr)
 		ether_ntoa_r(lladdr, ll_str);
@@ -215,7 +198,6 @@ void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
 	struct nda_cacheinfo *ndc;
 
 	if_indextoname(ndm->ndm_ifindex, ifname);
-
 
 	if (tb[NDA_DST]) {
 		addr = RTA_DATA(tb[NDA_DST]);
@@ -345,7 +327,7 @@ void parse_route_proto(struct rtmsg *rtm)
 		printf("route mannualy added\n");
 		break;
 	case RTPROT_RA:
-		printf("---> route added by RA/RS\n");
+		printf("Route added by RA/RS mechanism\n");
 		break;
 	case RTPROT_ZEBRA:
 		printf("route added by Zebra routing daemon\n");
@@ -360,7 +342,6 @@ int handle_route_msg(struct nlmsghdr *nlh, int n)
 	struct rtmsg *rtm = NLMSG_DATA(nlh);
 	struct rtattr *tb[RTN_MAX];
 
-	/* parse_route_proto(rtm); */
 	parse_rt_attrs(tb, RTN_MAX, RTM_RTA(rtm), RTM_PAYLOAD(nlh));
 	handle_route_attrs(rtm, tb, nlh->nlmsg_type);
 
@@ -373,22 +354,9 @@ int handle_link_msg(struct nlmsghdr *nlh, int n)
 	struct rtattr *tb[IFLA_MAX];
 	char ifname[IFNAMSIZ];
 
-	parse_rt_attrs(tb, IFLA_MAX, IFLA_RTA(ifla_msg),
-		       IFLA_PAYLOAD(nlh));
+	parse_rt_attrs(tb, IFLA_MAX, IFLA_RTA(ifla_msg), IFLA_PAYLOAD(nlh));
 	if_indextoname(ifla_msg->ifi_index, ifname);
-
 	parse_ifinfomsg(ifla_msg);
-
-	switch (nlh->nlmsg_type) {
-	case RTM_NEWLINK:
-		break;
-	case RTM_DELLINK:
-		break;
-	case RTM_GETLINK:
-		break;
-	default:
-		break;
-	}
 
 	return 0;
 }
@@ -443,6 +411,7 @@ int main(void)
 	}
 
 	memset(&skaddr, 0, sizeof(struct sockaddr_nl));
+
 	skaddr.nl_family = AF_NETLINK;
 	skaddr.nl_groups = (RTMGRP_LINK
 		| RTMGRP_NOTIFY
