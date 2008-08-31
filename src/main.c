@@ -198,10 +198,12 @@ int handle_addr_msg(struct nlmsghdr * nlh, int n)
 }
 
 void
-print_neigh_attrs (struct ndmsg * ndm, void * addr, void * lladdr,
-								char * action)
+print_neigh_attrs (struct ndmsg *ndm, void *addr, void *lladdr, char *action)
 {
 	char addr_str[INET6_ADDRSTRLEN], ll_str[INET6_ADDRSTRLEN];
+	char ifname[IFNAMSIZ];
+
+	if_indextoname(ndm->ndm_ifindex, ifname);
 
 	if (addr)
 		inet_ntop(ndm->ndm_family, addr, addr_str, INET6_ADDRSTRLEN);
@@ -209,7 +211,7 @@ print_neigh_attrs (struct ndmsg * ndm, void * addr, void * lladdr,
 	if (lladdr)
 		ether_ntoa_r(lladdr, ll_str);
 		
-	tprintf("Neighbour %s:", action);
+	tprintf("Neighbour %s on %s:", action, ifname);
 
 	if (addr)
 		printf(" IP Address(%s)", addr_str);
@@ -224,6 +226,7 @@ void handle_neigh_attrs(struct ndmsg * ndm, struct rtattr * tb[], int type)
 {
 	char ifname[IFNAMSIZ];
 	void * addr = NULL, * lladdr;
+	struct nda_cacheinfo * ndc;
 
 	if_indextoname(ndm->ndm_ifindex, ifname);
 
@@ -234,6 +237,10 @@ void handle_neigh_attrs(struct ndmsg * ndm, struct rtattr * tb[], int type)
 
 	if (tb[NDA_LLADDR]) {
 		lladdr = RTA_DATA(tb[NDA_LLADDR]);
+	}
+
+	if (tb[NDA_CACHEINFO]) {
+		printf("Debug neighbour cache info\n");
 	}
 
 	if (type == RTM_NEWNEIGH) 
