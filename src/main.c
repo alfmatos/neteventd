@@ -3,19 +3,14 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <string.h>
-
 #include <time.h>
-
 #include <asm/types.h>
 #include <arpa/inet.h>
-
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-
 #include <net/if.h>
 #include <net/ethernet.h>
-
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 #include <linux/neighbour.h>
@@ -52,17 +47,16 @@ void long_header()
 {
 	printf("%s\n", PACKAGE_STRING);
 	printf("Copyright (C) 2008 Alfredo Matos.\n"
-	       "License GPLv3+:"
-	       " GNU GPL version 3 or later <http://gnu.org/licenses/gpl.html>\n"
-	       "This is free software: you are free to change and redistribute it.\n"
+	       "License GPLv3+: GNU GPL version 3 or later "
+	       "<http://gnu.org/licenses/gpl.html>\n"
+	       "This is free software: "
+	       "you are free to change and redistribute it.\n"
 	       "There is NO WARRANTY, to the extent permitted by law.\n");
 }
-
 
 int debug_rt_msg(struct rtmsg *rti)
 {
 	char *strt;
-
 
 	switch (rti->rtm_type) {
 	case RTN_UNICAST:
@@ -75,7 +69,6 @@ int debug_rt_msg(struct rtmsg *rti)
 		break;
 	default:
 		break;
-
 	}
 
 	return 0;
@@ -84,7 +77,6 @@ int debug_rt_msg(struct rtmsg *rti)
 int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
 		   int len)
 {
-
 	struct rtattr *rta;
 	int atts = 0;
 	int type;
@@ -176,7 +168,6 @@ int handle_addr_attrs(struct ifaddrmsg *ifa_msg, struct rtattr *tb[],
 	if (tb[IFA_ANYCAST]) {
 	}
 
-
 	return 0;
 }
 
@@ -186,15 +177,13 @@ int handle_addr_msg(struct nlmsghdr *nlh, int n)
 	struct ifaddrmsg *ifa_msg = NLMSG_DATA(nlh);
 	struct rtattr *tb[IFA_MAX];
 
-
 	parse_rt_attrs(tb, IFA_MAX, IFA_RTA(ifa_msg), IFA_PAYLOAD(nlh));
 	handle_addr_attrs(ifa_msg, tb, nlh->nlmsg_type);
 	return 0;
 }
 
-void
-print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
-		  char *action)
+void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
+		       char *action)
 {
 	char addr_str[INET6_ADDRSTRLEN], ll_str[INET6_ADDRSTRLEN];
 	char ifname[IFNAMSIZ];
@@ -257,14 +246,12 @@ int handle_neigh_msg(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
-void
-print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
-		  struct rtmsg *rtm, char *action)
+void print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
+		       struct rtmsg *rtm, char *action)
 {
 	char gw_str[INET6_ADDRSTRLEN], dst_str[INET6_ADDRSTRLEN];
 	char src_str[INET6_ADDRSTRLEN], oif_str[IFNAMSIZ],
 	    iif_str[IFNAMSIZ];
-
 
 	if (dst)
 		inet_ntop(rtm->rtm_family, dst, dst_str, INET6_ADDRSTRLEN);
@@ -379,7 +366,6 @@ int handle_route_msg(struct nlmsghdr *nlh, int n)
 
 	return 0;
 }
-
 
 int handle_link_msg(struct nlmsghdr *nlh, int n)
 {
