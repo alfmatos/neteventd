@@ -143,8 +143,8 @@ void print_addr_event(void *addr, int family, int ifindex, int event)
 	}
 }
 
-int
-handle_addr_attrs(struct ifaddrmsg *ifa_msg, struct rtattr *tb[], int type)
+int handle_addr_attrs(struct ifaddrmsg *ifa_msg, struct rtattr *tb[],
+		      int type)
 {
 	struct ifa_cacheinfo *cinfo;
 
@@ -458,14 +458,16 @@ int main(void)
 
 	memset(&skaddr, 0, sizeof(struct sockaddr_nl));
 	skaddr.nl_family = AF_NETLINK;
-	skaddr.nl_groups = RTMGRP_LINK
-	    | RTMGRP_NOTIFY
-	    | RTMGRP_NEIGH
-	    | RTMGRP_IPV6_IFADDR
-	    | RTMGRP_IPV6_ROUTE
-	    | RTMGRP_IPV6_MROUTE
-	    | RTMGRP_IPV6_IFINFO
-	    | RTMGRP_IPV4_IFADDR | RTMGRP_IPV4_ROUTE | RTMGRP_IPV4_MROUTE;
+	skaddr.nl_groups = (RTMGRP_LINK
+		| RTMGRP_NOTIFY
+		| RTMGRP_NEIGH
+		| RTMGRP_IPV6_IFADDR
+		| RTMGRP_IPV6_ROUTE
+		| RTMGRP_IPV6_MROUTE
+		| RTMGRP_IPV6_IFINFO
+		| RTMGRP_IPV4_IFADDR
+		| RTMGRP_IPV4_ROUTE
+		| RTMGRP_IPV4_MROUTE);
 
 	if (bind(sknl, (struct sockaddr *) &skaddr, sizeof(skaddr)) < 0) {
 		printf("Error %d: %s\n", errno, strerror(errno));
@@ -480,6 +482,7 @@ int main(void)
 			printf("Error %d: %s\n", errno, strerror(errno));
 			exit(1);
 		}
+
 #if 0
 		tprintf("Received %d bytes.\n", bytes);
 #endif
