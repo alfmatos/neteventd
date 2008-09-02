@@ -1,4 +1,4 @@
-AC_PREREQ(2.61)
+AC_PREREQ(2.59)
 
 AC_INIT([neteventd], [0.2], [alfredo.matos@digitalself.org])
 AM_INIT_AUTOMAKE

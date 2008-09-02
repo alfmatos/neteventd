@@ -1,4 +1,6 @@
 #!/bin/sh
 
-automake --add-missing --copy
-autoreconf --install
+AUTOMAKE=automake
+ACLOCAL=aclocal
+
+AUTOMAKE=$AUTOMAKE ACLOCAL=$ACLOCAL autoreconf --install

@@ -4,3 +4,17 @@ Build and Installation Instructions:
     $ ./configure
     $ make
     $ make install
+
+Build from git
+==============
+
+  Requires autoconf >= 2.59, automake >= 1.9, aclocal >= 1.9
+
+  Ajust the automake and aclocal version in ./autogen.sh if you do not have 
+automake >= 1.9 as the default. The same goes for aclocal.
+
+  Run:
+
+  $ ./autogen.sh
+
+  And proceed with the normal build and install instructions.
