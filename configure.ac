@@ -10,10 +10,14 @@ AC_PROG_CC
 AC_PROG_INSTALL
 
 AC_HEADER_STDC
-AC_CHECK_HEADERS([stdlib.h string.h sys/socket.h sys/time.h])
+AC_CHECK_HEADERS([arpa/inet.h stdlib.h string.h sys/socket.h sys/time.h])
 
+AC_C_CONST
+AC_C_INLINE
 AC_HEADER_TIME
 AC_STRUCT_TM
+AC_TYPE_UINT16_T
+
 
 AC_CHECK_FUNCS([gettimeofday memset socket strerror])
 
