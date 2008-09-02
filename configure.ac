@@ -16,8 +16,6 @@ AC_C_CONST
 AC_C_INLINE
 AC_HEADER_TIME
 AC_STRUCT_TM
-AC_TYPE_UINT16_T
-
 
 AC_CHECK_FUNCS([gettimeofday memset socket strerror])
 
