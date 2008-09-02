@@ -180,22 +180,85 @@ void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
 	if (lladdr)
 		ether_ntoa_r(lladdr, ll_str);
 
-	tprintf("Neighbour %s on %s:", action, ifname);
+	tprintf("%s neighbor on %s:", action, ifname);
 
 	if (addr)
-		printf(" IP Address(%s)", addr_str);
+		printf(" [%s]", addr_str);
 
 	if (lladdr)
-		printf(" LL address(%s)", ll_str);
+		printf(" [%s]", ll_str);
 
 	printf("\n");
+}
+
+void parse_ndm_state(uint16_t state, struct nda_cacheinfo *ci)
+{
+	tprintf("Debug Nud state:");
+
+	if (state & NUD_INCOMPLETE)
+		printf(" NUD_INCOMPLETE");
+
+	if (state & NUD_REACHABLE)
+		printf(" NUD_REACHABLE");
+
+	if (state & NUD_STALE)
+		printf(" NUD_STALE");
+
+	if (state & NUD_DELAY)
+		printf(" NUD_DELAY");
+
+	if (state & NUD_FAILED)
+		printf(" NUD_FAILED");
+
+	if (state & NUD_NOARP)
+		printf(" NUD_NOARP");
+
+	if (state & NUD_PERMANENT)
+		printf(" NUD_PERMANENT");
+
+
+	if (ci)
+		printf("Cache: confirmed %d updated %d used %d refcnt %d\n",
+			ci->ndm_confirmed, ci->ndm_updated, ci->ndm_used,
+			ci->ndm_refcnt);
+}
+
+static inline detect_new_neigh(struct ndmsg *ndm, struct nda_cacheinfo *ci,
+				  int type)
+{
+	return ((type == RTM_NEWNEIGH) 
+		&& (((ndm->ndm_state & NUD_REACHABLE) && (ci->ndm_updated==0) 
+			&& (ci->ndm_used==0) && (ci->ndm_confirmed==0))
+		    || ((ndm->ndm_state & NUD_STALE) && (ci->ndm_updated==0)
+			 && (ci->ndm_used==0) && (ci->ndm_confirmed==15000))));
+}
+
+static inline detect_updated_neigh(struct ndmsg *ndm, struct nda_cacheinfo *ci,
+				   int type)
+{
+	return ((type == RTM_NEWNEIGH) && (ndm->ndm_state & NUD_REACHABLE)
+			&& (ci->ndm_updated == 0) && (ci->ndm_used != 0) 
+				&& (ci->ndm_confirmed != 0)
+				&& (ci->ndm_confirmed == ci->ndm_used));
+}
+
+static inline detect_expired_neigh(struct ndmsg *ndm, struct nda_cacheinfo *ci,
+				   int type)
+{
+	return (ndm->ndm_state & NUD_STALE) && (type == RTM_NEWNEIGH);
+}
+
+static inline detect_removed_neigh(struct ndmsg *ndm, struct nda_cacheinfo *ci,
+				   int type)
+{
+	return (ndm->ndm_state & NUD_STALE) && (type == RTM_DELNEIGH);
 }
 
 void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
 {
 	char ifname[IFNAMSIZ];
 	void *addr = NULL, *lladdr;
-	struct nda_cacheinfo *ndc;
+	struct nda_cacheinfo * ci;
 
 	if_indextoname(ndm->ndm_ifindex, ifname);
 
@@ -208,13 +271,23 @@ void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
 	}
 
 	if (tb[NDA_CACHEINFO]) {
-		printf("Debug neighbour cache info\n");
+		ci = RTA_DATA(tb[NDA_CACHEINFO]);
+	}
+	if (detect_new_neigh(ndm, ci, type)) {
+		print_neigh_attrs(ndm, addr, lladdr, "Added");
+//		parse_ndm_state(ndm->ndm_state, ci); 
+	} else if (detect_updated_neigh(ndm, ci, type)) {
+		print_neigh_attrs(ndm, addr, lladdr, "Updated");
+	} else if (detect_expired_neigh(ndm, ci, type)) {
+		print_neigh_attrs(ndm, addr, lladdr, "Expired");
+//		parse_ndm_state(ndm->ndm_state, ci);
+	} else if (detect_removed_neigh(ndm, ci, type)) {
+		print_neigh_attrs(ndm, addr, lladdr, "Removed");
+	} else { 
+		print_neigh_attrs(ndm, addr, lladdr, "Unknown action for");
+		parse_ndm_state(ndm->ndm_state, ci);
 	}
 
-	if (type == RTM_NEWNEIGH)
-		print_neigh_attrs(ndm, addr, lladdr, "Add Event");
-	else if (type == RTM_DELNEIGH)
-		print_neigh_attrs(ndm, addr, lladdr, "Del Event");
 }
 
 int handle_neigh_msg(struct nlmsghdr *nlh, int n)
