@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <string.h>
 #include <time.h>
+#include <getopt.h>
 
 #include <asm/types.h>
 #include <arpa/inet.h>
@@ -39,31 +40,60 @@
 #include "config.h"
 #endif
 
-int tprintf(char *format, ...)
+#define BLACK 		0
+#define RED 		1
+#define GREEN 		2
+#define YELLOW 		3
+#define BLUE 		4
+#define MAGENTA 	5
+#define CYAN 		6
+#define WHITE 		7
+#define NONE 		128
+
+#define OPT_UNKNOWN 	0
+#define OPT_COLOR 	1
+
+#define tprintf(args...) eprintf(NONE, ##args)
+
+static int color_output=0;
+
+void colorize(char * cmd, int color)
+{
+	sprintf(cmd, "%c[%d;%d;%dm", 0x1B, 0, color + 30, 40);
+}
+
+int eprintf(int color, char *format, ...)
 {
 	va_list argp;
 	char msg[2048], timestamp[20];
 	struct timeval tv;
 	struct tm *t;
+	char fg[13]="", fg_reset[13]="";
 
 	gettimeofday(&tv, NULL);
 	t = localtime(&tv.tv_sec);
 
-	sprintf(timestamp, "[%02d:%02d:%02d.%06ld]",
+	sprintf(timestamp,"[%02d:%02d:%02d.%06ld]",
 		t->tm_hour, t->tm_min, t->tm_sec, tv.tv_usec);
 
 	va_start(argp, format);
 	vsnprintf(msg, sizeof(msg), format, argp);
 	va_end(argp);
 
-	printf("%s %s", timestamp, msg);
+	if(color_output && (color != NONE)) {
+		colorize(fg, color);
+		colorize(fg_reset, WHITE);
+	}
+
+	printf("%s%s %s%s", fg, timestamp, msg, fg_reset);
+	fflush(stdout);
 
 	return 0;
 }
 
 void short_header()
 {
-	printf("%s - Copyright (C) 2008 Alfredo Matos.\n", PACKAGE_STRING);
+	printf("%s - Copyright (C) 2008 Alfredo Matos.\n",PACKAGE_STRING);
 }
 
 void long_header()
@@ -107,10 +137,10 @@ int parse_ifinfomsg(struct ifinfomsg *msg)
 	if_indextoname(msg->ifi_index, ifname);
 
 	if (msg->ifi_change & IFF_UP && (msg->ifi_flags & IFF_UP))
-		tprintf("Interface %s changed to UP\n", ifname);
+		eprintf(GREEN, "Interface %s changed to UP\n", ifname);
 
 	if (msg->ifi_change & IFF_UP && !(msg->ifi_flags & IFF_UP))
-		tprintf("Interface %s changed to DOWN\n", ifname);
+		eprintf(RED, "Interface %s changed to DOWN\n", ifname);
 
 	return 0;
 }
@@ -158,7 +188,7 @@ int handle_addr_attrs(const struct ifaddrmsg *ifa_msg, struct rtattr *tb[],
 		addr = RTA_DATA(tb[IFA_ADDRESS]);
 	}
 
-	/* TODO - Parse remaining attributes */
+	/* TODO: Parse remaining attributes */
 # if 0
 	if (tb[IFA_LOCAL]) {
 	}
@@ -189,7 +219,7 @@ int handle_addr_msg(struct nlmsghdr *nlh, int n)
 }
 
 void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
-		       char *action)
+		       char *action, int color)
 {
 	char addr_str[INET6_ADDRSTRLEN], ll_str[INET6_ADDRSTRLEN];
 	char ifname[IFNAMSIZ];
@@ -202,7 +232,7 @@ void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
 	if (lladdr)
 		ether_ntoa_r(lladdr, ll_str);
 
-	tprintf("%s neighbor on %s:", action, ifname);
+	eprintf(color, "%s neighbor on %s:", action, ifname);
 
 	if (addr)
 		printf(" [%s]", addr_str);
@@ -296,17 +326,17 @@ void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
 		ci = RTA_DATA(tb[NDA_CACHEINFO]);
 	}
 	if (detect_new_neigh(ndm, ci, type)) {
-		print_neigh_attrs(ndm, addr, lladdr, "Added");
+		print_neigh_attrs(ndm, addr, lladdr, "Added", GREEN);
 //		parse_ndm_state(ndm->ndm_state, ci); 
 	} else if (detect_updated_neigh(ndm, ci, type)) {
-		print_neigh_attrs(ndm, addr, lladdr, "Updated");
+		print_neigh_attrs(ndm, addr, lladdr, "Updated", YELLOW);
 	} else if (detect_expired_neigh(ndm, ci, type)) {
-		print_neigh_attrs(ndm, addr, lladdr, "Expired");
+		print_neigh_attrs(ndm, addr, lladdr, "Expired", RED);
 //		parse_ndm_state(ndm->ndm_state, ci);
 	} else if (detect_removed_neigh(ndm, ci, type)) {
-		print_neigh_attrs(ndm, addr, lladdr, "Removed");
+		print_neigh_attrs(ndm, addr, lladdr, "Removed", RED);
 	} else { 
-		print_neigh_attrs(ndm, addr, lladdr, "Unknown action for");
+		print_neigh_attrs(ndm, addr, lladdr, "Unknown action for", RED);
 		parse_ndm_state(ndm->ndm_state, ci);
 	}
 
@@ -487,7 +517,61 @@ int parse_rt_event(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
-int main(void)
+void init_opts(int * opts)
+{
+	memset(opts, 0, sizeof(int));
+}
+
+void set_opt(int * opts, int opt)
+{
+	*opts |= opt;
+}
+
+int parse_opts(int argc, char ** argv, int * opts)
+{
+	int opt, idx=0;
+	struct option lopts[] = {
+		{"help", 0, 0, 'h'},
+		{"color", 0, 0, 'c'},
+	};
+
+	init_opts(opts);
+
+	if ( argc < 1 || argc > 5) {
+		printf("Invalid arguments\n");
+		short_header();
+		exit(1);
+	}
+
+	while((opt = getopt_long(argc, argv, "hc", lopts, &idx)) != -1) {
+		switch(opt) {
+		case 0:
+			break;
+		case 'h':
+			long_header();
+			exit(0);
+			break;
+		case 'c':
+			set_opt(opts, OPT_COLOR);
+			color_output = 1;
+			break;
+		default:
+			exit(1);
+			break;
+		};
+	}
+
+	if (optind < argc) {
+		printf("Invalid arguments:");
+		while (optind < argc) 
+			printf(" %s", argv[optind++]);
+		printf("\n");
+		exit(1);
+	}
+
+}
+
+int main(int argc, char ** argv)
 {
 	int sknl, bytes, count = 100;
 	struct sockaddr_nl skaddr;
@@ -496,7 +580,11 @@ int main(void)
 	struct nlmsghdr *nlh;
 	struct ifinfomsg *ifmsg;
 
+	int opts;
+
 	short_header();
+
+	parse_opts(argc, argv, &opts);
 
 	sknl = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 
