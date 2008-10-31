@@ -248,11 +248,15 @@ void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
 
 	eprintf(color, "%s neighbor on %s:", action, ifname);
 
+	change_output_color(color);
+
 	if (addr)
 		printf(" [%s]", addr_str);
 
 	if (lladdr)
 		printf(" [%s]", ll_str);
+
+	reset_output_color();
 
 	printf("\n");
 }
