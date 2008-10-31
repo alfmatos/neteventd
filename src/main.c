@@ -62,6 +62,20 @@ void colorize(char * cmd, int color)
 	sprintf(cmd, "%c[%d;%d;%dm", 0x1B, 0, color + 30, 40);
 }
 
+void change_output_color(int color)
+{
+	char cmd[13];
+	colorize(cmd, color);
+	printf("%s", cmd);
+}
+
+void reset_output_color()
+{
+	char cmd[13];
+	colorize(cmd, WHITE);
+	printf("%s", cmd);
+}
+
 int eprintf(int color, char *format, ...)
 {
 	va_list argp;
@@ -154,10 +168,10 @@ void print_addr_event(void *addr, int family, int ifindex, int event)
 	inet_ntop(family, addr, str, INET6_ADDRSTRLEN);
 
 	if (event == RTM_NEWADDR)
-		tprintf("Added %s to dev %s\n", str, ifname);
+		eprintf(GREEN, "Added %s to dev %s\n", str, ifname);
 
 	if (event == RTM_DELADDR)
-		tprintf("Removed %s from dev %s\n", str, ifname);
+		eprintf(RED, "Removed %s from dev %s\n", str, ifname, RED);
 }
 
 static inline valid_family(const int family)
@@ -359,6 +373,9 @@ void print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
 	char gw_str[INET6_ADDRSTRLEN], dst_str[INET6_ADDRSTRLEN];
 	char src_str[INET6_ADDRSTRLEN], oif_str[IFNAMSIZ],
 	    iif_str[IFNAMSIZ];
+	int color;
+
+	color = (strcmp(action, "Added")?RED:GREEN);
 
 	if (dst)
 		inet_ntop(rtm->rtm_family, dst, dst_str, INET6_ADDRSTRLEN);
@@ -376,21 +393,21 @@ void print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
 		if_indextoname(*iif, iif_str);
 
 	if (dst && src && oif && gw) {
-		tprintf("%s route %s/%d from %s/%d on dev %s via %s\n",
+		eprintf(color, "%s route %s/%d from %s/%d on dev %s via %s\n",
 			action, dst_str, rtm->rtm_dst_len,
 			src_str, rtm->rtm_src_len, oif_str, gw_str);
 	} else if (dst && oif && gw) {
-		tprintf("%s route %s/%d on dev %s via %s\n",
+		eprintf(color, "%s route %s/%d on dev %s via %s\n",
 			action, dst_str, rtm->rtm_dst_len,
 			oif_str, gw_str);
 	} else if (dst && oif) {
-		tprintf("%s route %s/%d on dev %s\n",
+		eprintf(color, "%s route %s/%d on dev %s\n",
 			action, dst_str, rtm->rtm_dst_len, oif_str);
 	} else if (gw && oif) {
-		tprintf("%s default route via %s on dev %s\n",
+		eprintf(color, "%s default route via %s on dev %s\n",
 			action, gw_str, oif_str);
 	} else {
-		tprintf("%s unknown route type:", action);
+		eprintf(color, "%s unknown route type:", action);
 		if (gw)
 			printf(" gw");
 		if (dst)
