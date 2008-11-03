@@ -62,20 +62,6 @@ void colorize(char * cmd, int color)
 	sprintf(cmd, "%c[%d;%d;%dm", 0x1B, 0, color + 30, 40);
 }
 
-void change_output_color(int color)
-{
-	char cmd[13];
-	colorize(cmd, color);
-	printf("%s", cmd);
-}
-
-void reset_output_color()
-{
-	char cmd[13];
-	colorize(cmd, WHITE);
-	printf("%s", cmd);
-}
-
 int eprintf(int color, char *format, ...)
 {
 	va_list argp;
@@ -236,7 +222,8 @@ void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
 		       char *action, int color)
 {
 	char addr_str[INET6_ADDRSTRLEN], ll_str[INET6_ADDRSTRLEN];
-	char ifname[IFNAMSIZ];
+	char ifname[IFNAMSIZ], output[2048];
+	int len;
 
 	if_indextoname(ndm->ndm_ifindex, ifname);
 
@@ -246,19 +233,15 @@ void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
 	if (lladdr)
 		ether_ntoa_r(lladdr, ll_str);
 
-	eprintf(color, "%s neighbor on %s:", action, ifname);
-
-	change_output_color(color);
+	len = sprintf(output, "%s neighbor on %s:", action, ifname);
 
 	if (addr)
-		printf(" [%s]", addr_str);
+		len += sprintf(output+len, " [%s]", addr_str);
 
 	if (lladdr)
-		printf(" [%s]", ll_str);
+		len += sprintf(output+len," [%s]", ll_str);
 
-	reset_output_color();
-
-	printf("\n");
+	eprintf(color, "%s\n", output);
 }
 
 void parse_ndm_state(uint16_t state, struct nda_cacheinfo *ci)
@@ -377,7 +360,9 @@ void print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
 	char gw_str[INET6_ADDRSTRLEN], dst_str[INET6_ADDRSTRLEN];
 	char src_str[INET6_ADDRSTRLEN], oif_str[IFNAMSIZ],
 	    iif_str[IFNAMSIZ];
-	int color;
+	int color, len;
+
+	char buf[2048];
 
 	color = (strcmp(action, "Added")?RED:GREEN);
 
@@ -411,18 +396,18 @@ void print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
 		eprintf(color, "%s default route via %s on dev %s\n",
 			action, gw_str, oif_str);
 	} else {
-		eprintf(color, "%s unknown route type:", action);
+		len = sprintf(buf, "%s unknown route type:", action);
 		if (gw)
-			printf(" gw");
+			len += sprintf(buf+len, " gw");
 		if (dst)
-			printf(" dst");
+			len += sprintf(buf+len, " dst");
 		if (src)
-			printf(" src");
+			len += sprintf(buf+len, " src");
 		if (oif)
-			printf(" oif");
+			len += sprintf(buf+len, " oif");
 		if (iif)
-			printf(" iif");
-		printf("\n");
+			len += sprintf(buf+len, " iif");
+		eprintf(color, "%s\n", buf);
 	}
 }
 
@@ -531,7 +516,7 @@ int parse_rt_event(struct nlmsghdr *nlh, int n)
 		handle_route_msg(nlh, n);
 		break;
 	default:
-		tprintf("Unknown netlink event\n");
+		eprintf(RED, "Unknown netlink event\n");
 		break;
 	}
 
