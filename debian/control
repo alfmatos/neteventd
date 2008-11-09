@@ -1,0 +1,16 @@
+Source: neteventd
+Section: net
+Priority: extra
+Maintainer: Alfredo Matos <alfredo.matos@digitalself.org>
+Build-Depends: debhelper (>= 7), autotools-dev, libiw-dev
+Standards-Version: 3.7.3
+Homepage: http://www.digitalself.org
+
+Package: neteventd
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libiw29
+Description:  Network stack event monitor
+ Event tracker with timestamp support for events comming from the network
+ stack. Tracks wireless and wired events, along with route and neighbor changes
+ among other features.
+
