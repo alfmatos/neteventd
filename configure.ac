@@ -12,6 +12,13 @@ AC_PROG_INSTALL
 AC_HEADER_STDC
 AC_CHECK_HEADERS([arpa/inet.h stdlib.h string.h sys/socket.h sys/time.h])
 
+AC_CHECK_HEADER(iwlib.h,, AC_MSG_ERROR([iwlib is required but was not found. Installing wireless-tools-dev should fix this.]))
+
+IWLIB=-liw
+AC_SUBST(IWLIB)
+
+LDFLAGS="$LDFLAGS $IWLIB"
+
 AC_C_CONST
 AC_C_INLINE
 AC_HEADER_TIME

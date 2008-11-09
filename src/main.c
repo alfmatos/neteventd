@@ -35,6 +35,7 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
+#include <iwlib.h>
 
 #ifdef HAVE_CONFIG_H
 #include "config.h"
@@ -479,6 +480,15 @@ int handle_route_msg(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
+int handle_link_attrs(struct ifinfomsg * ifla, struct rtattr *tb[], int type)
+{
+	if (tb[IFLA_WIRELESS]) {
+		tprintf("Found a Wireless Event\n");
+	}
+
+	return 0;
+}
+
 int handle_link_msg(struct nlmsghdr *nlh, int n)
 {
 	struct ifinfomsg *ifla_msg = NLMSG_DATA(nlh);
@@ -488,6 +498,8 @@ int handle_link_msg(struct nlmsghdr *nlh, int n)
 	parse_rt_attrs(tb, IFLA_MAX, IFLA_RTA(ifla_msg), IFLA_PAYLOAD(nlh));
 	if_indextoname(ifla_msg->ifi_index, ifname);
 	parse_ifinfomsg(ifla_msg);
+
+	handle_link_attrs(ifla_msg, tb, nlh->nlmsg_type);
 
 	return 0;
 }
