@@ -21,6 +21,7 @@
 #include <string.h>
 #include <time.h>
 #include <getopt.h>
+#include <signal.h>
 
 #include <asm/types.h>
 #include <arpa/inet.h>
@@ -90,6 +91,12 @@ int eprintf(int color, char *format, ...)
 	fflush(stdout);
 
 	return 0;
+}
+
+void signal_handler(int sig)
+{
+	fflush(stdout);
+	exit(0);
 }
 
 void short_header()
@@ -629,6 +636,10 @@ int main(int argc, char ** argv)
 		printf("Error %d: %s\n", errno, strerror(errno));
 		exit(1);
 	}
+
+	signal(SIGHUP, signal_handler);
+	signal(SIGTERM, signal_handler);
+	signal(SIGINT, signal_handler);
 
 	while (1) {
 		memset(buf, 0, 2048);
