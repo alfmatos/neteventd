@@ -554,7 +554,7 @@ void set_opt(int * opts, int opt)
 	*opts |= opt;
 }
 
-int parse_opts(int argc, char ** argv, int * opts)
+void parse_opts(int argc, char ** argv, int * opts)
 {
 	int opt, idx=0;
 	struct option lopts[] = {
