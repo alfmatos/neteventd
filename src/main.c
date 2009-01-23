@@ -117,6 +117,15 @@ void long_header()
 	       "There is NO WARRANTY, to the extent permitted by law.\n");
 }
 
+void usage()
+{
+	printf("\nUsage: neteventd [OPTIONS]\n"
+		"Options:\n"
+		"\t-c, --color\tcontrol whether color is used\n"
+		"\t-h, --help\tdisplay this help and exit\n"
+		);
+}
+
 int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
 		   int len)
 {
@@ -289,8 +298,8 @@ void parse_ndm_state(uint16_t state, struct nda_cacheinfo *ci)
 static inline detect_new_neigh(struct ndmsg *ndm, struct nda_cacheinfo *ci,
 				  int type)
 {
-	return ((type == RTM_NEWNEIGH) 
-		&& (((ndm->ndm_state & NUD_REACHABLE) && (ci->ndm_updated==0) 
+	return ((type == RTM_NEWNEIGH)
+		&& (((ndm->ndm_state & NUD_REACHABLE) && (ci->ndm_updated==0)
 			&& (ci->ndm_used==0) && (ci->ndm_confirmed==0))
 		    || ((ndm->ndm_state & NUD_STALE) && (ci->ndm_updated==0)
 			 && (ci->ndm_used==0) && (ci->ndm_confirmed==15000))));
@@ -300,7 +309,7 @@ static inline detect_updated_neigh(struct ndmsg *ndm, struct nda_cacheinfo *ci,
 				   int type)
 {
 	return ((type == RTM_NEWNEIGH) && (ndm->ndm_state & NUD_REACHABLE)
-			&& (ci->ndm_updated == 0) && (ci->ndm_used != 0) 
+			&& (ci->ndm_updated == 0) && (ci->ndm_used != 0)
 				&& (ci->ndm_confirmed != 0)
 				&& (ci->ndm_confirmed == ci->ndm_used));
 }
@@ -338,7 +347,7 @@ void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
 	}
 	if (detect_new_neigh(ndm, ci, type)) {
 		print_neigh_attrs(ndm, addr, lladdr, "Added", GREEN);
-//		parse_ndm_state(ndm->ndm_state, ci); 
+//		parse_ndm_state(ndm->ndm_state, ci);
 	} else if (detect_updated_neigh(ndm, ci, type)) {
 		print_neigh_attrs(ndm, addr, lladdr, "Updated", YELLOW);
 	} else if (detect_expired_neigh(ndm, ci, type)) {
@@ -346,7 +355,7 @@ void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
 //		parse_ndm_state(ndm->ndm_state, ci);
 	} else if (detect_removed_neigh(ndm, ci, type)) {
 		print_neigh_attrs(ndm, addr, lladdr, "Removed", RED);
-	} else { 
+	} else {
 		print_neigh_attrs(ndm, addr, lladdr, "Unknown action for", RED);
 		parse_ndm_state(ndm->ndm_state, ci);
 	}
@@ -576,6 +585,7 @@ void parse_opts(int argc, char ** argv, int * opts)
 			break;
 		case 'h':
 			long_header();
+			usage();
 			exit(0);
 			break;
 		case 'c':
@@ -590,7 +600,7 @@ void parse_opts(int argc, char ** argv, int * opts)
 
 	if (optind < argc) {
 		printf("Invalid arguments:");
-		while (optind < argc) 
+		while (optind < argc)
 			printf(" %s", argv[optind++]);
 		printf("\n");
 		exit(1);
