@@ -57,6 +57,9 @@
 #define OPT_UNKNOWN 	0
 #define OPT_COLOR 	1
 
+#define DEFAULT_FILTER	(RTMGRP_LINK | RTMGRP_NOTIFY | RTMGRP_NEIGH | RTMGRP_IPV6_IFADDR | RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_MROUTE | RTMGRP_IPV6_IFINFO | RTMGRP_IPV4_IFADDR | RTMGRP_IPV4_ROUTE | RTMGRP_IPV4_MROUTE);
+
+
 #define tprintf(args...) eprintf(NONE, ##args)
 
 static int color_output=0;
@@ -119,10 +122,14 @@ void long_header()
 
 void usage()
 {
-	printf("\nUsage: neteventd [OPTIONS]\n"
+	printf("\nUsage: neteventd [OPTIONS] [FILTERS]]\n"
 		"Options:\n"
 		"\t-c, --color\tcontrol whether color is used\n"
 		"\t-h, --help\tdisplay this help and exit\n"
+		"\nFilters:\n"
+		"\tRTMGRP_LINK RTMGRP_NOTIFY RTMGRP_NEIGH RTMGRP_IPV6_IFADDR\n"
+		"\tRTMGRP_IPV6_ROUTERTMGRP_IPV6_MROUTE RTMGRP_IPV6_IFINFO\n"
+		"\tRTMGRP_IPV4_IFADDR RTMGRP_IPV4_ROUTE RTMGRP_IPV4_MROUTE\n"
 		);
 }
 
@@ -563,7 +570,47 @@ void set_opt(int * opts, int opt)
 	*opts |= opt;
 }
 
-void parse_opts(int argc, char ** argv, int * opts)
+
+void parse_filters(char **argv, int start, int stop, int * filter)
+{
+	int f = 0;
+	int pos = start;
+
+	for (pos=start; pos<stop; pos++) {
+		if (strcmp(argv[pos], "RTMGRP_LINK") == 0) {
+			f |= RTMGRP_LINK;
+		} else if (strcmp(argv[pos], "RTMGRP_NOTIFY") == 0) {
+			f |= RTMGRP_NOTIFY;
+		} else if (strcmp(argv[pos], "RTMGRP_NEIGH") == 0) {
+			f |= RTMGRP_NEIGH;
+		} else if (strcmp(argv[pos], "RTMGRP_IPV6_IFADDR") == 0) {
+			f |= RTMGRP_IPV6_IFADDR;
+		}  else if (strcmp(argv[pos], "RTMGRP_IPV6_ROUTE") == 0) {
+			f |= RTMGRP_IPV6_ROUTE;
+		}  else if (strcmp(argv[pos], "RTMGRP_IPV6_MROUTE") == 0) {
+			f |= RTMGRP_IPV6_MROUTE;
+		}  else if (strcmp(argv[pos], "RTMGRP_IPV6_IFINFO") == 0) {
+			f |= RTMGRP_IPV6_IFINFO;
+		}  else if (strcmp(argv[pos], "RTMGRP_IPV4_IFADDR") == 0) {
+			f |= RTMGRP_IPV4_IFADDR;
+		} else if (strcmp(argv[pos], "RTMGRP_IPV4_ROUTE") == 0) {
+			f |= RTMGRP_IPV4_ROUTE;
+		} else if (strcmp(argv[pos], "RTMGRP_IPV4_MROUTE") == 0) {
+			f |= RTMGRP_IPV4_MROUTE;
+		} else {
+			printf("Invalid argument: %s\n", argv[pos]);
+			exit(1);
+		}
+	}
+	printf("Filter: ");
+	for (pos=start; pos<stop; pos++) {
+		printf("%s ", argv[pos]);
+	} printf("\n");
+
+	*filter = f;
+}
+
+void parse_opts(int argc, char ** argv, int * opts, int * filter)
 {
 	int opt, idx=0;
 	struct option lopts[] = {
@@ -599,13 +646,8 @@ void parse_opts(int argc, char ** argv, int * opts)
 	}
 
 	if (optind < argc) {
-		printf("Invalid arguments:");
-		while (optind < argc)
-			printf(" %s", argv[optind++]);
-		printf("\n");
-		exit(1);
+		parse_filters(argv, optind, argc, filter);
 	}
-
 }
 
 int main(int argc, char ** argv)
@@ -617,11 +659,14 @@ int main(int argc, char ** argv)
 	struct nlmsghdr *nlh;
 	struct ifinfomsg *ifmsg;
 
-	int opts;
+	int opts, filter;
 
 	short_header();
 
-	parse_opts(argc, argv, &opts);
+	// default filter
+	filter = DEFAULT_FILTER;
+
+	parse_opts(argc, argv, &opts, &filter);
 
 	sknl = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
 
@@ -633,16 +678,7 @@ int main(int argc, char ** argv)
 	memset(&skaddr, 0, sizeof(struct sockaddr_nl));
 
 	skaddr.nl_family = AF_NETLINK;
-	skaddr.nl_groups = (RTMGRP_LINK
-		| RTMGRP_NOTIFY
-		| RTMGRP_NEIGH
-		| RTMGRP_IPV6_IFADDR
-		| RTMGRP_IPV6_ROUTE
-		| RTMGRP_IPV6_MROUTE
-		| RTMGRP_IPV6_IFINFO
-		| RTMGRP_IPV4_IFADDR
-		| RTMGRP_IPV4_ROUTE
-		| RTMGRP_IPV4_MROUTE);
+	skaddr.nl_groups = filter;
 
 	if (bind(sknl, (struct sockaddr *) &skaddr, sizeof(skaddr)) < 0) {
 		printf("Error %d: %s\n", errno, strerror(errno));
