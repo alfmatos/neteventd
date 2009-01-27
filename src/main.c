@@ -1,6 +1,8 @@
 /*
- *  Copyright (C) 2008 Alfredo Matos
- *  
+ *  Copyright (C) 2008 IT Aveiro
+ *
+ *  Author: Alfredo Matos <alfredo.matos@av.it.pt>
+ *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation; either version 3 of the License, or
@@ -101,13 +103,13 @@ void signal_handler(int sig)
 
 void short_header()
 {
-	printf("%s - Copyright (C) 2008 Alfredo Matos.\n",PACKAGE_STRING);
+	printf("%s - Copyright (C) 2009 IT Aveiro.\n",PACKAGE_STRING);
 }
 
 void long_header()
 {
 	printf("%s\n", PACKAGE_STRING);
-	printf("Copyright (C) 2008 Alfredo Matos.\n"
+	printf("Copyright (C) 2009 IT Aveiro.\n"
 	       "License GPLv3+: GNU GPL version 3 or later "
 	       "<http://gnu.org/licenses/gpl.html>\n"
 	       "This is free software: "

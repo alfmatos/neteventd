@@ -1,19 +1,19 @@
-This package was debianized by Alfredo Matos <alfredo.matos@digitalself.org> on
+This package was debianized by Alfredo Matos <alfredo.matos@av.it.pt> on
 Sun, 09 Nov 2008 12:20:19 +0000.
 
-It was downloaded from <http://git.digitalself.org>
+It was downloaded from <http://hng.av.it.pt/~alfmatos/neteventd>
 
 Upstream Author(s):
 
-    Alfredo Matos <alfredo.matos@digitalself.org>
+    Alfredo Matos <alfredo.matos@av.it.pt>
 
 Copyright:
 
-    <Copyright (C) 2008 Alfredo Matos>
+    <Copyright (C) 2008 IT Aveiro>
 
 License:
 
     GNU GPLv3
 
-The Debian packaging is (C) 2008, Alfredo Matos <alfredo.matos@digitalself.org>
+The Debian packaging is (C) 2008, Alfredo Matos <alfredo.matos@av.it.pt>
 and is licensed under the GPL, see `/usr/share/common-licenses/GPL'.
