@@ -650,10 +650,78 @@ void parse_opts(int argc, char ** argv, int * opts, int * filter)
 	}
 }
 
+
+/**
+ * @author rferreira
+ * @short Create netlink socket
+ *
+ * Creates and bind()s a netlink socket. On error errno will be set.
+ *
+ * @param filter groups filter(ex: RTMGRP_IPV4_MROUTE | RTMGRP_IPV6_IFADDR )
+ * @return -1 on error, otherwise the socket file descriptor is return
+ */
+static int setup_rtsocket(int filter)
+{
+	int sknl;
+	struct sockaddr_nl skaddr;
+
+	sknl = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
+	if (sknl < 0) {
+		return -1;
+	}
+
+	memset(&skaddr, 0, sizeof(struct sockaddr_nl));
+	skaddr.nl_family = AF_NETLINK;
+	skaddr.nl_groups = filter;
+
+	if (bind(sknl, (struct sockaddr *) &skaddr, sizeof(skaddr)) < 0) {
+		return -1;
+	}
+
+	return sknl;
+}
+
+/**
+ * @author rferreira
+ *
+ * @short rtnetlink messages handler loop
+ * @param sknl Fully initialized netlink socket
+ * @see setup_rtsocket
+ * @return 0 on success, -1 otherwise
+ *
+ */
+static int loop_rthandle(int sknl)
+{
+	int bytes, count = 100;
+	char buf[2048];
+	struct nlmsghdr *nlh;
+
+	while (1) {
+		memset(buf, 0, 2048);
+		bytes = recv(sknl, buf, 2048, 0);
+
+		if (bytes <= 0) {
+			return -1;
+		}
+
+		#if 0
+		tprintf("Received %d bytes.\n", bytes);
+		#endif
+
+		nlh = (struct nlmsghdr *) buf;
+
+		if (NLMSG_OK(nlh, bytes)) {
+			parse_rt_event(nlh, bytes);
+		}
+		count--;
+	}
+
+	return 0;
+}
+
 int main(int argc, char ** argv)
 {
 	int sknl, bytes, count = 100;
-	struct sockaddr_nl skaddr;
 	char buf[2048];
 	char ifname[IFNAMSIZ];
 	struct nlmsghdr *nlh;
@@ -668,46 +736,19 @@ int main(int argc, char ** argv)
 
 	parse_opts(argc, argv, &opts, &filter);
 
-	sknl = socket(AF_NETLINK, SOCK_RAW, NETLINK_ROUTE);
-
-	if (sknl < 0) {
+	if ( (sknl=setup_rtsocket(filter)) == -1 ) {
 		printf("Error %d: %s\n", errno, strerror(errno));
 		exit(1);
 	}
 
-	memset(&skaddr, 0, sizeof(struct sockaddr_nl));
-
-	skaddr.nl_family = AF_NETLINK;
-	skaddr.nl_groups = filter;
-
-	if (bind(sknl, (struct sockaddr *) &skaddr, sizeof(skaddr)) < 0) {
-		printf("Error %d: %s\n", errno, strerror(errno));
-		exit(1);
-	}
-
+	// Install signal handlers
 	signal(SIGHUP, signal_handler);
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 
-	while (1) {
-		memset(buf, 0, 2048);
-		bytes = recv(sknl, buf, 2048, 0);
-
-		if (bytes <= 0) {
-			printf("Error %d: %s\n", errno, strerror(errno));
-			exit(1);
-		}
-
-#if 0
-		tprintf("Received %d bytes.\n", bytes);
-#endif
-
-		nlh = (struct nlmsghdr *) buf;
-
-		if (NLMSG_OK(nlh, bytes)) {
-			parse_rt_event(nlh, bytes);
-		}
-		count--;
+	if ( loop_rthandle(sknl) != 0 ) {
+		printf("Error %d: %s\n", errno, strerror(errno));
+		exit(1);
 	}
 
 	close(sknl);
