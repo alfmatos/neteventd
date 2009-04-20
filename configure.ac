@@ -8,6 +8,7 @@ AC_CONFIG_HEADER([config.h])
 
 AC_PROG_CC
 AC_PROG_INSTALL
+AC_PROG_RANLIB
 
 AC_HEADER_STDC
 AC_CHECK_HEADERS([arpa/inet.h stdlib.h string.h sys/socket.h sys/time.h])

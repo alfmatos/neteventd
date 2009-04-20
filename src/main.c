@@ -44,6 +44,8 @@
 #include "config.h"
 #endif
 
+#include "events.h"
+
 #define BLACK 		0
 #define RED 		1
 #define GREEN 		2
@@ -98,18 +100,18 @@ int eprintf(int color, char *format, ...)
 	return 0;
 }
 
-void signal_handler(int sig)
+static void signal_handler(int sig)
 {
 	fflush(stdout);
 	exit(0);
 }
 
-void short_header()
+static void short_header()
 {
 	printf("%s - Copyright (C) 2009 IT Aveiro.\n",PACKAGE_STRING);
 }
 
-void long_header()
+static void long_header()
 {
 	printf("%s\n", PACKAGE_STRING);
 	printf("Copyright (C) 2009 IT Aveiro.\n"
@@ -120,7 +122,7 @@ void long_header()
 	       "There is NO WARRANTY, to the extent permitted by law.\n");
 }
 
-void usage()
+static void usage()
 {
 	printf("\nUsage: neteventd [OPTIONS] [FILTERS]]\n"
 		"Options:\n"
@@ -133,7 +135,7 @@ void usage()
 		);
 }
 
-int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
+static int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
 		   int len)
 {
 	struct rtattr *rta;
@@ -156,7 +158,7 @@ int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
 	return atts;
 }
 
-int parse_ifinfomsg(struct ifinfomsg *msg)
+static int parse_ifinfomsg(struct ifinfomsg *msg)
 {
 	char ifname[IFNAMSIZ];
 
@@ -171,7 +173,7 @@ int parse_ifinfomsg(struct ifinfomsg *msg)
 	return 0;
 }
 
-void print_addr_event(void *addr, int family, int ifindex, int event)
+static void print_addr_event(void *addr, int family, int ifindex, int event)
 {
 	char str[INET6_ADDRSTRLEN];
 	char ifname[IFNAMSIZ];
@@ -196,7 +198,7 @@ static inline cache_new_address_ts(const struct ifa_cacheinfo * ci)
 	return (ci->tstamp == ci->cstamp);
 }
 
-int handle_addr_attrs(const struct ifaddrmsg *ifa_msg, struct rtattr *tb[],
+static int handle_addr_attrs(const struct ifaddrmsg *ifa_msg, struct rtattr *tb[],
 		      int type)
 {
 	struct ifa_cacheinfo *ci=NULL;
@@ -233,7 +235,7 @@ int handle_addr_attrs(const struct ifaddrmsg *ifa_msg, struct rtattr *tb[],
 }
 
 
-int handle_addr_msg(struct nlmsghdr *nlh, int n)
+static int handle_addr_msg(struct nlmsghdr *nlh, int n)
 {
 	struct ifaddrmsg *ifa_msg = NLMSG_DATA(nlh);
 	struct rtattr *tb[IFA_MAX];
@@ -244,7 +246,7 @@ int handle_addr_msg(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
-void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
+static void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
 		       char *action, int color)
 {
 	char addr_str[INET6_ADDRSTRLEN], ll_str[INET6_ADDRSTRLEN];
@@ -270,7 +272,7 @@ void print_neigh_attrs(struct ndmsg *ndm, void *addr, void *lladdr,
 	eprintf(color, "%s\n", output);
 }
 
-void parse_ndm_state(uint16_t state, struct nda_cacheinfo *ci)
+static void parse_ndm_state(uint16_t state, struct nda_cacheinfo *ci)
 {
 	tprintf("Debug Nud state:");
 
@@ -333,7 +335,7 @@ static inline detect_removed_neigh(struct ndmsg *ndm, struct nda_cacheinfo *ci,
 	return (ndm->ndm_state & NUD_STALE) && (type == RTM_DELNEIGH);
 }
 
-void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
+static void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
 {
 	char ifname[IFNAMSIZ];
 	void *addr = NULL, *lladdr;
@@ -369,7 +371,7 @@ void handle_neigh_attrs(struct ndmsg *ndm, struct rtattr *tb[], int type)
 
 }
 
-int handle_neigh_msg(struct nlmsghdr *nlh, int n)
+static int handle_neigh_msg(struct nlmsghdr *nlh, int n)
 {
 	struct rtattr *tb[NDA_MAX];
 	struct ndmsg *ndm = NLMSG_DATA(nlh);
@@ -380,7 +382,7 @@ int handle_neigh_msg(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
-void print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
+static void print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
 		       struct rtmsg *rtm, char *action)
 {
 	char gw_str[INET6_ADDRSTRLEN], dst_str[INET6_ADDRSTRLEN];
@@ -437,7 +439,7 @@ void print_route_attrs(void *src, void *dst, void *gw, int *iif, int *oif,
 	}
 }
 
-int handle_route_attrs(struct rtmsg *rtm, struct rtattr *tb[], int type)
+static int handle_route_attrs(struct rtmsg *rtm, struct rtattr *tb[], int type)
 {
 	void *src = NULL, *dst = NULL, *gw = NULL;
 	int *iif = NULL, *oif = NULL;
@@ -471,7 +473,7 @@ int handle_route_attrs(struct rtmsg *rtm, struct rtattr *tb[], int type)
 	return 0;
 }
 
-void parse_route_proto(struct rtmsg *rtm)
+static void parse_route_proto(struct rtmsg *rtm)
 {
 	switch (rtm->rtm_protocol) {
 	case RTPROT_KERNEL:
@@ -494,7 +496,7 @@ void parse_route_proto(struct rtmsg *rtm)
 	}
 }
 
-int handle_route_msg(struct nlmsghdr *nlh, int n)
+static int handle_route_msg(struct nlmsghdr *nlh, int n)
 {
 	struct rtmsg *rtm = NLMSG_DATA(nlh);
 	struct rtattr *tb[RTN_MAX];
@@ -505,7 +507,7 @@ int handle_route_msg(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
-int handle_link_attrs(struct ifinfomsg * ifla, struct rtattr *tb[], int type)
+static int handle_link_attrs(struct ifinfomsg * ifla, struct rtattr *tb[], int type)
 {
 	if (tb[IFLA_WIRELESS]) {
 		tprintf("Found a Wireless Event\n");
@@ -514,7 +516,7 @@ int handle_link_attrs(struct ifinfomsg * ifla, struct rtattr *tb[], int type)
 	return 0;
 }
 
-int handle_link_msg(struct nlmsghdr *nlh, int n)
+static int handle_link_msg(struct nlmsghdr *nlh, int n)
 {
 	struct ifinfomsg *ifla_msg = NLMSG_DATA(nlh);
 	struct rtattr *tb[IFLA_MAX];
@@ -560,18 +562,18 @@ int parse_rt_event(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
-void init_opts(int * opts)
+static void init_opts(int * opts)
 {
 	memset(opts, 0, sizeof(int));
 }
 
-void set_opt(int * opts, int opt)
+static void set_opt(int * opts, int opt)
 {
 	*opts |= opt;
 }
 
 
-void parse_filters(char **argv, int start, int stop, int * filter)
+static void parse_filters(char **argv, int start, int stop, int * filter)
 {
 	int f = 0;
 	int pos = start;
@@ -610,7 +612,7 @@ void parse_filters(char **argv, int start, int stop, int * filter)
 	*filter = f;
 }
 
-void parse_opts(int argc, char ** argv, int * opts, int * filter)
+static void parse_opts(int argc, char ** argv, int * opts, int * filter)
 {
 	int opt, idx=0;
 	struct option lopts[] = {
@@ -660,7 +662,7 @@ void parse_opts(int argc, char ** argv, int * opts, int * filter)
  * @param filter groups filter(ex: RTMGRP_IPV4_MROUTE | RTMGRP_IPV6_IFADDR )
  * @return -1 on error, otherwise the socket file descriptor is return
  */
-static int setup_rtsocket(int filter)
+int setup_rtsocket(int filter)
 {
 	int sknl;
 	struct sockaddr_nl skaddr;
@@ -690,7 +692,7 @@ static int setup_rtsocket(int filter)
  * @return 0 on success, -1 otherwise
  *
  */
-static int loop_rthandle(int sknl)
+int loop_rthandle(struct event_handler *h, int sknl)
 {
 	int bytes, count = 100;
 	char buf[2048];
@@ -711,7 +713,8 @@ static int loop_rthandle(int sknl)
 		nlh = (struct nlmsghdr *) buf;
 
 		if (NLMSG_OK(nlh, bytes)) {
-			parse_rt_event(nlh, bytes);
+			event_push(h, nlh, bytes);
+			//parse_rt_event(nlh, bytes);
 		}
 		count--;
 	}
@@ -726,6 +729,7 @@ int main(int argc, char ** argv)
 	char ifname[IFNAMSIZ];
 	struct nlmsghdr *nlh;
 	struct ifinfomsg *ifmsg;
+	struct event_handler ev_handler;
 
 	int opts, filter;
 
@@ -741,12 +745,16 @@ int main(int argc, char ** argv)
 		exit(1);
 	}
 
+	// Setup event handler
+	event_init(&ev_handler);
+	event_register(&ev_handler, parse_rt_event);
+
 	// Install signal handlers
 	signal(SIGHUP, signal_handler);
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
 
-	if ( loop_rthandle(sknl) != 0 ) {
+	if ( loop_rthandle(&ev_handler, sknl) != 0 ) {
 		printf("Error %d: %s\n", errno, strerror(errno));
 		exit(1);
 	}
