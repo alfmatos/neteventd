@@ -103,6 +103,7 @@ int eprintf(int color, char *format, ...)
 static void signal_handler(int sig)
 {
 	fflush(stdout);
+	printf("\e[0m");
 	exit(0);
 }
 
