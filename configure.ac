@@ -3,7 +3,7 @@ AC_PREREQ(2.59)
 AC_INIT([neteventd], [0.3.2], [alfredo.matos@digitalself.org])
 AM_INIT_AUTOMAKE
 
-AC_CONFIG_SRCDIR([src/main.c])
+AC_CONFIG_SRCDIR([src/])
 AC_CONFIG_HEADER([config.h])
 
 AC_PROG_CC
