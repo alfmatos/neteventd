@@ -44,7 +44,7 @@
 #include "config.h"
 #endif
 
-#include "events.h"
+#include <netevent/netevent.h>
 
 #define BLACK 		0
 #define RED 		1

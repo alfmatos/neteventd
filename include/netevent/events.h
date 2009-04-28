@@ -1,12 +1,13 @@
+#ifndef __NETEVENT_EVENTS__
+#define __NETEVENT_EVENTS__
+
+
 /**
  * @file events.h Data consuption event handlers
  *
  * Some simple methods to keep track and dispatch handler functions
  *
  */
-
-#ifndef __NETEVENT_EVENTS__
-#define __NETEVENT_EVENTS__
 
 #include <stdlib.h>
 #include <sys/types.h>

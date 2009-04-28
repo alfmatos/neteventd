@@ -1,26 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdarg.h>
-#include <errno.h>
-#include <string.h>
-#include <time.h>
-#include <getopt.h>
-#include <signal.h>
-
-#include <asm/types.h>
-#include <arpa/inet.h>
-
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-
-#include <net/if.h>
-#include <net/ethernet.h>
-
-#include <linux/netlink.h>
-#include <linux/rtnetlink.h>
-
-#include "events.h"
+#include <netevent/netlink.h>
 
 
 /**

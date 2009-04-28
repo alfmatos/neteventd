@@ -25,6 +25,11 @@ AC_C_INLINE
 AC_HEADER_TIME
 AC_STRUCT_TM
 
+# Header files
+AC_SUBST(NETEVENT_PATH, `pwd`)
+AC_SUBST(NETEVENT_INCLUDE_PATH, "$NETEVENT_PATH/include")
+AC_SUBST(netevent_include_paths, "-I $NETEVENT_INCLUDE_PATH" )
+
 AC_CHECK_FUNCS([gettimeofday memset socket strerror])
 
 AC_CONFIG_FILES([Makefile
