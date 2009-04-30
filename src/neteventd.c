@@ -24,6 +24,7 @@
 #include <time.h>
 #include <getopt.h>
 #include <signal.h>
+#include <unistd.h>
 
 #include <asm/types.h>
 #include <arpa/inet.h>
@@ -69,6 +70,47 @@ static int color_output=0;
 void colorize(char * cmd, int color)
 {
 	sprintf(cmd, "%c[%d;%d;%dm", 0x1B, 0, color + 30, 40);
+}
+
+/**
+ * @short Whether or not the terminal is "dumb"(no color support)
+ * @return 1 if it is dumb, 0 otherwise
+ */
+static int is_terminal_dumb()
+{
+	char *term = getenv("TERM");
+
+	if ( term && strncmp(term, "TERM", 4) == 0 ) {
+		return 1;
+	}
+
+	return 0;
+}
+
+/**
+ * @short Enable colored output
+ *
+ * i.e. it just sets color_output to 1, but does some additional
+ * sanity checks
+ *
+ * @return 0 if color was not enabled
+ */
+static int enable_color_output(void)
+{
+
+	if (isatty( fileno(stdout)) == 0 ) {
+		color_output = 0;
+	} else if ( is_terminal_dumb() ) {
+		color_output = 0;
+	}  else {
+		color_output = 1;
+	}
+
+	if ( color_output == 0 ) {
+		fprintf(stderr, "Colored output doesn't seem to be supported by the terminal...disabling\n");
+	}
+
+	return color_output;
 }
 
 int eprintf(int color, char *format, ...)
@@ -653,7 +695,7 @@ static void parse_opts(int argc, char ** argv, int * opts, int * filter)
 			break;
 		case 'c':
 			set_opt(opts, OPT_COLOR);
-			color_output = 1;
+			enable_color_output();
 			break;
 		default:
 			exit(1);
