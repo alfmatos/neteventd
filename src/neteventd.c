@@ -100,10 +100,21 @@ int eprintf(int color, char *format, ...)
 	return 0;
 }
 
-static void signal_handler(int sig)
+
+/**
+ * @short Cleanup before exit
+ *
+ * - Reset terminal colors
+ * - Flush stdout buffer
+ */
+static void exit_cleanup(void)
 {
 	fflush(stdout);
 	printf("\e[0m");
+}
+
+static void signal_handler(int sig)
+{
 	exit(0);
 }
 
@@ -682,6 +693,9 @@ int main(int argc, char ** argv)
 	signal(SIGHUP, signal_handler);
 	signal(SIGTERM, signal_handler);
 	signal(SIGINT, signal_handler);
+
+	// Register cleanup function
+	atexit(exit_cleanup);
 
 	if ( loop_rthandle(&ev_handler, sknl) != 0 ) {
 		printf("Error %d: %s\n", errno, strerror(errno));
