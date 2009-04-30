@@ -55,7 +55,7 @@
 #define MAGENTA 	5
 #define CYAN 		6
 #define WHITE 		7
-#define NONE 		128
+#define NONE		128
 
 #define OPT_UNKNOWN 	0
 #define OPT_COLOR 	1
@@ -69,7 +69,7 @@ static int color_output=0;
 
 void colorize(char * cmd, int color)
 {
-	sprintf(cmd, "%c[%d;%d;%dm", 0x1B, 0, color + 30, 40);
+	sprintf(cmd, "\e[%dm", color + 30);
 }
 
 /**
@@ -119,7 +119,7 @@ int eprintf(int color, char *format, ...)
 	char msg[2048], timestamp[20];
 	struct timeval tv;
 	struct tm *t;
-	char fg[13]="", fg_reset[13]="";
+	char fg[13]="", fg_reset[]="\e[0m";
 
 	gettimeofday(&tv, NULL);
 	t = localtime(&tv.tv_sec);
@@ -133,7 +133,6 @@ int eprintf(int color, char *format, ...)
 
 	if(color_output && (color != NONE)) {
 		colorize(fg, color);
-		colorize(fg_reset, WHITE);
 	}
 
 	printf("%s%s %s%s", fg, timestamp, msg, fg_reset);
