@@ -1,5 +1,5 @@
 Name:		neteventd
-Version:	0.3.2
+Version:	0.3.3
 Release:	1
 Summary:	Track network events for debug purposes
 Group:		System Environment/Libraries
@@ -28,7 +28,11 @@ make DESTDIR=$RPM_BUILD_ROOT install-strip
 %files
 	%defattr(-,root,root,-)
 	%{_bindir}/neteventd
+	%{_libdir}/libnetevent.*
+	%{_includedir}/netevent/
 
 %changelog
+* Mon Jun 15 2009 Rui Ferreira <ruiabreuferreira@gmail.com> 0.3.3
+  - Added new files from version 0.3.3
 * Tue Jan 06 2009 Rui Ferreira <ruiabreuferreira@gmail.com> 0.3.2
   - Initial specfile for neteventd 0.3.2
