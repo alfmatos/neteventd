@@ -36,7 +36,7 @@ make DESTDIR=$RPM_BUILD_ROOT install-strip
 	%{_includedir}/netevent/
 
 %changelog
-* Mon Jun 15 2009 Rui Ferreira <ruiabreuferreira@gmail.com> 0.3.3
+* Mon Jun 15 2009 Rui Ferreira <rferreira@av.it.pt> 0.3.3
   - Added new files from version 0.3.3
-* Tue Jan 06 2009 Rui Ferreira <ruiabreuferreira@gmail.com> 0.3.2
+* Tue Jan 06 2009 Rui Ferreira <rferreira@av.it.pt> 0.3.2
   - Initial specfile for neteventd 0.3.2
