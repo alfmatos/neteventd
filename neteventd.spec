@@ -9,6 +9,10 @@ BuildRoot:	%{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
 BuildRequires:	gcc, autoconf >= 2.59, wireless-tools
 
+%if 0%{?fedora_version} >= 5
+BuildRequires:  gcc, autoconf >= 2.59, wireless-tools-devel
+%endif
+
 %description
 Track network events in the Linux kernel for debug purposes
 
