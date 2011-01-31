@@ -159,22 +159,6 @@ static void signal_handler(int sig)
 	exit(0);
 }
 
-static void short_header()
-{
-	printf("%s - Copyright (C) 2009 IT Aveiro.\n",PACKAGE_STRING);
-}
-
-static void long_header()
-{
-	printf("%s\n", PACKAGE_STRING);
-	printf("Copyright (C) 2009 IT Aveiro.\n"
-	       "License GPLv3+: GNU GPL version 3 or later "
-	       "<http://gnu.org/licenses/gpl.html>\n"
-	       "This is free software: "
-	       "you are free to change and redistribute it.\n"
-	       "There is NO WARRANTY, to the extent permitted by law.\n");
-}
-
 static void usage()
 {
 	printf("\nUsage: neteventd [OPTIONS] [FILTERS]]\n"
@@ -679,7 +663,6 @@ static void parse_opts(int argc, char ** argv, int * opts, int * filter)
 
 	if ( argc < 1 || argc > 5) {
 		printf("Invalid arguments\n");
-		short_header();
 		exit(1);
 	}
 
@@ -688,7 +671,6 @@ static void parse_opts(int argc, char ** argv, int * opts, int * filter)
 		case 0:
 			break;
 		case 'h':
-			long_header();
 			usage();
 			exit(0);
 			break;
@@ -713,8 +695,6 @@ int main(int argc, char ** argv)
 	struct event_handler ev_handler;
 
 	int opts, filter;
-
-	short_header();
 
 	// default filter
 	filter = DEFAULT_FILTER;
