@@ -1,9 +1,6 @@
 #include <errno.h>
 #include <netevent/events.h>
 
-
-
-
 void event_init(struct event_handler *h)
 {
 	int i;
@@ -13,7 +10,6 @@ void event_init(struct event_handler *h)
 		h->sync[i] = NULL;
 	}
 }
-
 
 int event_register(struct event_handler *h, ev_handler_t fun)
 {
@@ -31,7 +27,6 @@ int event_register(struct event_handler *h, ev_handler_t fun)
 	return 0;
 }
 
-
 void event_push(struct event_handler *h, void *buf, size_t len)
 {
 	int i;
@@ -42,6 +37,3 @@ void event_push(struct event_handler *h, void *buf, size_t len)
 		}
 	}
 }
-
-
-

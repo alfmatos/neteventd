@@ -62,7 +62,6 @@
 
 #define DEFAULT_FILTER	(RTMGRP_LINK | RTMGRP_NOTIFY | RTMGRP_NEIGH | RTMGRP_IPV6_IFADDR | RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_MROUTE | RTMGRP_IPV6_IFINFO | RTMGRP_IPV4_IFADDR | RTMGRP_IPV4_ROUTE | RTMGRP_IPV4_MROUTE);
 
-
 #define tprintf(args...) eprintf(NONE, ##args)
 
 static int color_output=0;
@@ -140,7 +139,6 @@ int eprintf(int color, char *format, ...)
 
 	return 0;
 }
-
 
 /**
  * @short Cleanup before exit

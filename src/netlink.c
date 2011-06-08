@@ -1,6 +1,5 @@
 #include <netevent/netlink.h>
 
-
 /**
 * @author rferreira
 * @short Create netlink socket
@@ -30,9 +29,6 @@ int setup_rtsocket(int filter)
 
 	return sknl;
 }
-
-
-
 
 /**
 * @author rferreira
@@ -72,4 +68,3 @@ int loop_rthandle(struct event_handler *h, int sknl)
 
 	return 0;
 }
-
