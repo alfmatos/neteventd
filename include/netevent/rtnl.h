@@ -25,6 +25,11 @@
 
 #include <netevent/events.h>
 
+#define DEFAULT_FILTER	(RTMGRP_LINK | RTMGRP_NOTIFY | RTMGRP_NEIGH | RTMGRP_IPV6_IFADDR | RTMGRP_IPV6_ROUTE | RTMGRP_IPV6_MROUTE | RTMGRP_IPV6_IFINFO | RTMGRP_IPV4_IFADDR | RTMGRP_IPV4_ROUTE | RTMGRP_IPV4_MROUTE);
+
+
+int parse_rt_event( void *data, size_t n);
+
 /**
 * @author rferreira
 * @short Create netlink socket

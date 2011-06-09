@@ -1,7 +1,7 @@
 INCLUDES = $(netevent_include_paths)
 
 lib_LTLIBRARIES = libnetevent.la
-libnetevent_la_SOURCES = netlink.c events.c
+libnetevent_la_SOURCES = rtnl.c console.c events.c
 
 bin_PROGRAMS = neteventd
 neteventd_SOURCES = neteventd.c
