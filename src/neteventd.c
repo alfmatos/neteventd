@@ -43,8 +43,6 @@
 #include <linux/netlink.h>
 #include <linux/rtnetlink.h>
 
-#include <iwlib.h>
-
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -52,6 +50,9 @@
 #include <netevent/netevent.h>
 #include <netevent/console.h>
 #include <netevent/rtnl.h>
+#include <netevent/iw.h>
+
+#define MAXFD(X,Y) ((X>Y)?X:Y)
 
 static void signal_handler(int sig)
 {
@@ -162,7 +163,7 @@ static void parse_opts(int argc, char ** argv, int * opts, int * filter)
 
 int main(int argc, char ** argv)
 {
-	int sknl;
+	int sknl, retval, maxfd;
 	struct event_handler ev_handler;
 
 	int opts, filter;
@@ -191,22 +192,21 @@ int main(int argc, char ** argv)
 
 	fd_set rfds;
 
-	//struct timeval tv;
-	int retval, maxfd;
-
+	struct timeval tv;
 
 	FD_ZERO(&rfds);
 
 	while(1) {
 
 		maxfd = 0;
+
 		FD_SET(sknl, &rfds);
-		maxfd++;
+		maxfd = MAXFD(sknl, maxfd);
 
-		//tv.tv_sec = 1;
-		//tv.tv_usec = 0;
+		tv.tv_sec = 1;
+		tv.tv_usec = 0;
 
-		retval = select(maxfd, &rfds, NULL, NULL, NULL);
+		retval = select(maxfd+1, &rfds, NULL, NULL, &tv);
 
 		if (retval == -1) {
 			perror("select()\n");
@@ -220,6 +220,7 @@ int main(int argc, char ** argv)
 					exit(1);
 				}
 			}
+		} else {
 		}
 	}
 
