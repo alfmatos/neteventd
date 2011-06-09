@@ -484,40 +484,24 @@ int setup_rtsocket(int filter)
 	return sknl;
 }
 
-/**
-* @author rferreira
-*
-* @short rtnetlink messages handler loop
-* @param sknl Fully initialized netlink socket
-* @see setup_rtsocket
-* @return 0 on success, -1 otherwise
-*
-*/
-int loop_rthandle(struct event_handler *h, int sknl)
+int recv_rtnl_msg(struct event_handler *h, int sknl)
 {
-	int bytes, count = 100;
+	int bytes;
 	char buf[2048];
 	struct nlmsghdr *nlh;
 
-	while (1) {
-		memset(buf, 0, 2048);
-		bytes = recv(sknl, buf, 2048, 0);
+	memset(buf, 0, 2048);
+	bytes = recv(sknl, buf, 2048, 0);
 
-		if (bytes <= 0) {
-			return -1;
-		}
+	if (bytes <= 0) {
+		return -1;
+	}
 
-		#if 0
-		tprintf("Received %d bytes.\n", bytes);
-		#endif
+	nlh = (struct nlmsghdr *) buf;
 
-		nlh = (struct nlmsghdr *) buf;
-
-		if (NLMSG_OK(nlh, bytes)) {
-			event_push(h, nlh, bytes);
-			//parse_rt_event(nlh, bytes);
-		}
-		count--;
+	if (NLMSG_OK(nlh, bytes)) {
+		event_push(h, nlh, bytes);
+		//parse_rt_event(nlh, bytes);
 	}
 
 	return 0;
