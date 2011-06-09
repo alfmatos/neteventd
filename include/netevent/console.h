@@ -22,6 +22,8 @@
 #define OPT_COLOR 	1
 
 int enable_color_output(void);
+void console_exit_cleanup(void);
+
 int eprintf(int color, char *format, ...);
 
 #define tprintf(args...) eprintf(NONE, ##args)

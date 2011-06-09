@@ -53,18 +53,6 @@
 #include <netevent/console.h>
 #include <netevent/rtnl.h>
 
-/**
- * @short Cleanup before exit
- *
- * - Reset terminal colors
- * - Flush stdout buffer
- */
-static void exit_cleanup(void)
-{
-	fflush(stdout);
-	printf("\e[0m");
-}
-
 static void signal_handler(int sig)
 {
 	exit(0);
@@ -199,7 +187,7 @@ int main(int argc, char ** argv)
 	signal(SIGINT, signal_handler);
 
 	// Register cleanup function
-	atexit(exit_cleanup);
+	atexit(console_exit_cleanup);
 
 	fd_set rfds;
 
