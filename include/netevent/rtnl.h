@@ -41,18 +41,6 @@ int parse_rt_event( void *data, size_t n);
 */
 int setup_rtsocket(int filter);
 
-
-
-/**
-* @author rferreira
-*
-* @short rtnetlink messages handler loop
-* @param sknl Fully initialized netlink socket
-* @see setup_rtsocket
-* @return 0 on success, -1 otherwise
-*
-*/
-int loop_rthandle(struct event_handler *h, int sknl);
-
+int recv_rtnl_msg(struct event_handler *h, int sknl);
 
 #endif

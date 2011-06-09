@@ -1,7 +1,11 @@
 /*
  *  Copyright (C) 2008 IT Aveiro
+ *  Copyright (C) 2011 Caixa Magica
  *
- *  Author: Alfredo Matos <alfredo.matos@av.it.pt>
+ *  Author:
+ *
+ *	Alfredo Matos <alfredo.matos@av.it.pt>
+ *	Alfredo Matos <alfredo.matos@caixamagica.pt>
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -197,11 +201,41 @@ int main(int argc, char ** argv)
 	// Register cleanup function
 	atexit(exit_cleanup);
 
-	if ( loop_rthandle(&ev_handler, sknl) != 0 ) {
-		printf("Error %d: %s\n", errno, strerror(errno));
-		exit(1);
+	fd_set rfds;
+
+	//struct timeval tv;
+	int retval, maxfd;
+
+
+	FD_ZERO(&rfds);
+
+	while(1) {
+
+		maxfd = 0;
+		FD_SET(sknl, &rfds);
+		maxfd++;
+
+		//tv.tv_sec = 1;
+		//tv.tv_usec = 0;
+
+		retval = select(maxfd, &rfds, NULL, NULL, NULL);
+
+		if (retval == -1) {
+			perror("select()\n");
+			exit(1);
+		}
+
+		if (retval) {
+			if(FD_ISSET(sknl, &rfds)) {
+				if (recv_rtnl_msg(&ev_handler, sknl) != 0 ) {
+					printf("Error %d: %s\n", errno, strerror(errno));
+					exit(1);
+				}
+			}
+		}
 	}
 
 	close(sknl);
+
 	return 0;
 }
