@@ -1,6 +1,6 @@
 AC_PREREQ(2.59)
 
-AC_INIT([neteventd], [0.3.3], [alfredo.matos@digitalself.org])
+AC_INIT([neteventd], [0.3.900], [alfredo.matos@caixamagica.pt])
 AM_INIT_AUTOMAKE
 
 AC_CONFIG_SRCDIR([src/])
