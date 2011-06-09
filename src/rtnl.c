@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2008 IT Aveiro
+ *  Copyright (C) 2008-2011 IT Aveiro
  *  Copyright (C) 2011 Caixa Magica
  *
  *  Authors:
@@ -22,6 +22,7 @@
  */
 
 #include <netevent/rtnl.h>
+#include <netevent/iw.h>
 #include <netevent/console.h>
 
 static int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
@@ -398,8 +399,14 @@ static int handle_route_msg(struct nlmsghdr *nlh, int n)
 
 static int handle_link_attrs(struct ifinfomsg * ifla, struct rtattr *tb[], int type)
 {
+	char ifname[IFNAMSIZ];
+	if_indextoname(ifla->ifi_index, ifname);
+
 	if (tb[IFLA_WIRELESS]) {
-		tprintf("Found a Wireless Event\n");
+		struct rtattr  * data = RTA_DATA(tb[IFLA_WIRELESS]);
+		unsigned int len = RTA_PAYLOAD(data);
+		tprintf("Wireless attribute (%u bytes) on %s\n", len, ifname);
+
 	}
 
 	return 0;
@@ -409,10 +416,8 @@ static int handle_link_msg(struct nlmsghdr *nlh, int n)
 {
 	struct ifinfomsg *ifla_msg = NLMSG_DATA(nlh);
 	struct rtattr *tb[IFLA_MAX];
-	char ifname[IFNAMSIZ];
 
 	parse_rt_attrs(tb, IFLA_MAX, IFLA_RTA(ifla_msg), IFLA_PAYLOAD(nlh));
-	if_indextoname(ifla_msg->ifi_index, ifname);
 	parse_ifinfomsg(ifla_msg);
 
 	handle_link_attrs(ifla_msg, tb, nlh->nlmsg_type);
@@ -452,7 +457,6 @@ int parse_rt_event( void *data, size_t n)
 
 	return 0;
 }
-
 
 /**
 * @author rferreira
