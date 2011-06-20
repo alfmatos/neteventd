@@ -1,3 +1,9 @@
+neteventd (0.3.900-0) natty; urgency=low
+
+  * New release with initial wireless support
+
+ -- Alfredo Matos <alfredo.matos@caixamagica.pt>  Mon, 20 Jun 2011 12:19:35 +0100
+
 neteventd (0.3.3-3ubuntu1) jaunty; urgency=low
 
   * Updated for latest release
