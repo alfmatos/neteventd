@@ -22,8 +22,9 @@
  */
 
 #include <netevent/rtnl.h>
-#include <netevent/iw.h>
 #include <netevent/console.h>
+#include <netevent/iw.h>
+#include <netevent/utils.h>
 
 static int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
 		   int len)
@@ -39,6 +40,7 @@ static int parse_rt_attrs(struct rtattr *tb[], int max, struct rtattr *data,
 		if (type > 0 && type < max) {
 			tb[type] = rta;
 			atts++;
+			//tprintf("Parse => Attribute: %d, Length: %d\n", rta->rta_type, len);
 		}
 	}
 
@@ -397,16 +399,47 @@ static int handle_route_msg(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
+
 static int handle_link_attrs(struct ifinfomsg * ifla, struct rtattr *tb[], int type)
 {
+	struct rtattr * rta;
 	char ifname[IFNAMSIZ];
-	if_indextoname(ifla->ifi_index, ifname);
+	char * buf;
+	int mtu;
+	char brd[18], ll[18];
+
+	if (tb[IFLA_BROADCAST]) {
+		rta = tb[IFLA_BROADCAST];
+		ether_ntoa_r((struct ether_addr *) RTA_DATA(rta), brd);
+	}
+
+	if (tb[IFLA_IFNAME]) {
+		rta  = tb[IFLA_IFNAME];
+		strncpy(ifname, (char*) RTA_DATA(rta), rta->rta_len);
+	}
+
+	if (tb[IFLA_ADDRESS]) {
+		rta = tb[IFLA_ADDRESS];
+		ether_ntoa_r((struct ether_addr*) RTA_DATA(rta), ll);
+	}
+
+	if (tb[IFLA_MTU]) {
+		rta = tb[IFLA_MTU];
+		mtu = *((int*)RTA_DATA(rta));
+	}
+
+	if (tb[IFLA_LINK]) {
+		tprintf("Unparsed attribute: IFLA_LINK\n");
+	}
+
+	if(tb[IFLA_IFNAME] && tb[IFLA_ADDRESS] && tb[IFLA_MTU]) {
+		tprintf("%s addr %s mtu %d brd %s \n", ifname, ll, mtu, brd);
+	}
+
 
 	if (tb[IFLA_WIRELESS]) {
-		struct rtattr  * data = RTA_DATA(tb[IFLA_WIRELESS]);
-		unsigned int len = RTA_PAYLOAD(data);
-		tprintf("Wireless attribute (%u bytes) on %s\n", len, ifname);
-
+		struct rtattr * iwa = tb[IFLA_WIRELESS];
+		handle_wireless_attr(ifla->ifi_index, RTA_DATA(iwa), RTA_PAYLOAD(iwa));
 	}
 
 	return 0;
@@ -417,7 +450,9 @@ static int handle_link_msg(struct nlmsghdr *nlh, int n)
 	struct ifinfomsg *ifla_msg = NLMSG_DATA(nlh);
 	struct rtattr *tb[IFLA_MAX];
 
-	parse_rt_attrs(tb, IFLA_MAX, IFLA_RTA(ifla_msg), IFLA_PAYLOAD(nlh));
+
+	int atts = parse_rt_attrs(tb, IFLA_MAX, IFLA_RTA(ifla_msg), IFLA_PAYLOAD(nlh));
+
 	parse_ifinfomsg(ifla_msg);
 
 	handle_link_attrs(ifla_msg, tb, nlh->nlmsg_type);
@@ -425,9 +460,10 @@ static int handle_link_msg(struct nlmsghdr *nlh, int n)
 	return 0;
 }
 
-int parse_rt_event( void *data, size_t n)
+int parse_rt_event(void *data, size_t n)
 {
 	struct nlmsghdr *nlh = (struct nlmsghdr *)data;
+
 
 	switch (nlh->nlmsg_type) {
 	case RTM_NEWLINK:
