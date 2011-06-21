@@ -51,6 +51,7 @@
 #include <netevent/console.h>
 #include <netevent/rtnl.h>
 #include <netevent/iw.h>
+#include <netevent/nl80211.h>
 
 #define MAXFD(X,Y) ((X>Y)?X:Y)
 
@@ -163,7 +164,7 @@ static void parse_opts(int argc, char ** argv, int * opts, int * filter)
 
 int main(int argc, char ** argv)
 {
-	int sknl, retval, maxfd;
+	int sknl, sknl80211, retval, maxfd;
 	struct event_handler ev_handler;
 
 	int opts, filter;
@@ -177,6 +178,8 @@ int main(int argc, char ** argv)
 		printf("Error %d: %s\n", errno, strerror(errno));
 		exit(1);
 	}
+
+	sknl80211= nl80211_socket_init();
 
 	// Setup event handler
 	event_init(&ev_handler);
@@ -203,6 +206,9 @@ int main(int argc, char ** argv)
 		FD_SET(sknl, &rfds);
 		maxfd = MAXFD(sknl, maxfd);
 
+		FD_SET(sknl80211, &rfds);
+		maxfd = MAXFD(sknl80211, maxfd);
+
 		tv.tv_sec = 1;
 		tv.tv_usec = 0;
 
@@ -220,6 +226,11 @@ int main(int argc, char ** argv)
 					exit(1);
 				}
 			}
+
+			if(FD_ISSET(sknl80211, &rfds)) {
+				nl80211_msg_rx(sknl80211);
+			}
+
 		} else {
 		}
 	}
