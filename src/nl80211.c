@@ -160,7 +160,8 @@ int nl80211_handle_event(struct nl_msg * msg, void * arg)
 	count = nl80211_handle_attrs(tb);
 
 	if(count<n) {
-		tprintf("mac80211: Received %d attributes from nl80211 and processed %d\n", n, count);
+		tprintf("mac80211: Processed %d of %d nl80211 attributes\n",
+			count, n);
 	}
 
 	return NL_OK;
