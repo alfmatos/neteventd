@@ -27,6 +27,8 @@
 
 #include <linux/nl80211.h>
 
+#include "nl80211-attrs.h"
+
 struct nl_sock * gsock;
 struct nl_cb * gcb;
 
@@ -133,11 +135,14 @@ int nl_unparsed_ids(struct nlattr * tb[], unsigned int parsed[])
 				slen +=	sprintf(ids+slen, ", ");
 			slen += sprintf(ids+slen, "%d", i);
 			count++;
+
+			tprintf("mac80211: unsparsed attribute %s(%d)\n",
+				nl_attr_name[i], i);
 		}
 	}
 
 	if (count < total) {
-		tprintf("mac80211: parsed %d of %d : nl_unparsed_ids[%s]\n",
+		tprintf("mac80211: parsed %d of %d attrs, unparsed_ids(%s)\n",
 		count, total, ids);
 	}
 
