@@ -136,7 +136,7 @@ int nl_unparsed_ids(struct nlattr * tb[], unsigned int parsed[])
 			slen += sprintf(ids+slen, "%d", i);
 			count++;
 
-			tprintf("mac80211: unsparsed attribute %s(%d)\n",
+			tprintf("mac80211: unparsed attribute %s(%d)\n",
 				nl_attr_name[i], i);
 		}
 	}
