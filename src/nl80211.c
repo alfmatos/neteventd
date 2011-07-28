@@ -417,20 +417,20 @@ int nl80211_register_callbacks(struct nl_cb ** cb)
 
 int nl80211_socket_init(void)
 {
-	int i, id;
+        int i, id;
 
-	gsock = nl_socket_alloc();
+        nl80211_register_callbacks(&gcb);
 
-	genl_connect(gsock);
+        gsock = nl_socket_alloc_cb(gcb);
 
-	id = genl_ctrl_resolve(gsock, "nl80211");
 
-	nl80211_register_multicast_groups(gsock, id);
-	nl80211_register_callbacks(&gcb);
+        genl_connect(gsock);
+        id = genl_ctrl_resolve(gsock, "nl80211");
 
-	nl_socket_disable_seq_check(gsock);
+        nl80211_register_multicast_groups(gsock, id);
+        nl_socket_disable_seq_check(gsock);
 
-	return nl_socket_get_fd(gsock);
+        return nl_socket_get_fd(gsock);
 }
 
 int nl80211_socket_close(struct nl_sock * nlsk)
