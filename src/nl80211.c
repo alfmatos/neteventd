@@ -406,16 +406,10 @@ int nl80211_handle_event(struct nl_msg * msg, void * arg)
 	return NL_OK;
 }
 
-static int seq_check_pass(struct nl_msg *msg, void *arg)
-{
-	return NL_OK;
-}
-
 int nl80211_register_callbacks(struct nl_cb ** cb)
 {
 	*cb = nl_cb_alloc(NL_CB_VERBOSE);
 
-	nl_cb_set(*cb, NL_CB_SEQ_CHECK, NL_CB_CUSTOM, seq_check_pass, NULL);
 	nl_cb_set(*cb, NL_CB_VALID, NL_CB_CUSTOM, nl80211_handle_event, NULL);
 
 	return 0;
@@ -433,6 +427,8 @@ int nl80211_socket_init(void)
 
 	nl80211_register_multicast_groups(gsock, id);
 	nl80211_register_callbacks(&gcb);
+
+	nl_socket_disable_seq_check(gsock);
 
 	return nl_socket_get_fd(gsock);
 }
