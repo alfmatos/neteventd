@@ -30,7 +30,6 @@
 #include "nl80211-attrs.h"
 
 struct nl_sock * gsock;
-struct nl_cb * gcb;
 
 int join_multicast_group(struct nl_sock * nlsk, int id)
 {
@@ -114,6 +113,8 @@ int nl80211_register_multicast_groups(struct nl_sock * nlsk, int fid)
 
 	nl_recvmsgs(nlsk, cb);
 
+	nl_wait_for_ack(nlsk);
+
 	nl_cb_put(cb);
 	nlmsg_free(msg);
 
@@ -129,7 +130,6 @@ int nl_unparsed_ids(struct nlattr * tb[], unsigned int parsed[])
 	total = nl_attr_count(tb);
 
 	for(i=0, count=0; i<NL80211_ATTR_MAX; i++) {
-
 		if(tb[i] && !parsed[i]) {
 			if (count>0)
 				slen +=	sprintf(ids+slen, ", ");
@@ -406,29 +406,20 @@ int nl80211_handle_event(struct nl_msg * msg, void * arg)
 	return NL_OK;
 }
 
-int nl80211_register_callbacks(struct nl_cb ** cb)
-{
-	*cb = nl_cb_alloc(NL_CB_VERBOSE);
-
-	nl_cb_set(*cb, NL_CB_VALID, NL_CB_CUSTOM, nl80211_handle_event, NULL);
-
-	return 0;
-}
-
 int nl80211_socket_init(void)
 {
         int i, id;
+	struct nl_cb * cb;
 
-        nl80211_register_callbacks(&gcb);
-
-        gsock = nl_socket_alloc_cb(gcb);
-
+        gsock = nl_socket_alloc();
 
         genl_connect(gsock);
         id = genl_ctrl_resolve(gsock, "nl80211");
 
         nl80211_register_multicast_groups(gsock, id);
+
         nl_socket_disable_seq_check(gsock);
+	nl_socket_modify_cb(gsock, NL_CB_VALID, NL_CB_CUSTOM, nl80211_handle_event, NULL);
 
         return nl_socket_get_fd(gsock);
 }
@@ -441,5 +432,5 @@ int nl80211_socket_close(struct nl_sock * nlsk)
 
 inline int nl80211_msg_rx(int skfd)
 {
-	nl_recvmsgs(gsock, gcb);
+	nl_recvmsgs_default(gsock);
 }
