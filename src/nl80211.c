@@ -141,9 +141,9 @@ int nl_unparsed_ids(struct nlattr * tb[], unsigned int parsed[])
 		}
 	}
 
-	if (count < total) {
+	if (count > 0) {
 		tprintf("mac80211: parsed %d of %d attrs, unparsed_ids(%s)\n",
-		count, total, ids);
+			count, total, ids);
 	}
 
 	return count;
@@ -288,7 +288,9 @@ int nl80211_handle_attrs(unsigned int cmd, struct nlattr * tb[])
 		tprintf("mac80211: mic fail mgmt\n");
 		break;
 	case NL80211_CMD_TESTMODE:
-		tprintf("mac80211 connection testmode\n");
+		if (tb[NL80211_ATTR_TESTDATA]) {
+			parsed[NL80211_ATTR_TESTDATA] = 1;
+		}
 		break;
 	case NL80211_CMD_CONNECT:
 		status = 0;
